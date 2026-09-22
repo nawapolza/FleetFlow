@@ -1,0 +1,1 @@
+export default {content:['./index.html','./src/**/*.{js,jsx}'],theme:{extend:{fontFamily:{sans:['"Noto Sans Thai"','"Segoe UI"','Tahoma','sans-serif']},colors:{navy:'#0b1628',ink:'#17263a',muted:'#718096',brand:'#2563eb',canvas:'#f4f7fb'},boxShadow:{soft:'0 14px 40px rgba(18,33,59,.07)'}}},plugins:[]};

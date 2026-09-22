@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {validDate,validMonth,money,summarize,eventRows} from '../src/logic.js';
+test('rejects invalid calendar dates',()=>{assert.equal(validDate('2026-02-30'),false);assert.equal(validDate('2026-02-28'),true);assert.equal(validMonth('2026-13'),false);});
+test('rejects negative or fractional-cent currency',()=>{assert.equal(money(-1),false);assert.equal(money(1.001),false);assert.equal(money(20.15),true);});
+test('separates billed profit and actual cash flow',()=>{const s=summarize([{amount:3000,received:1000,tripCount:2},{amount:400,received:400,tripCount:1}],[{amount:500},{amount:200}]);assert.deepEqual(s,{billed:3400,received:1400,outstanding:2000,cost:700,profit:2700,cashBalance:700,trips:3,jobs:2});});
+test('income expense ledger excludes unpaid invoice portions',()=>{const rows=eventRows([{_id:'a',date:'2026-09-02',material:'ทราย',customer:'A',received:100,vehicle:'v'}],[{_id:'b',date:'2026-09-01',category:'fuel',description:'',amount:40,vehicle:'v'}]);assert.deepEqual(rows.map(x=>x.amount),[-40,100]);});
