@@ -14,6 +14,29 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
+const { promisify } = require('util');
+const derivePassword = promisify(crypto.scrypt);
+const PASSWORD_MAX_BYTES = 4096; // Bound work/memory; no UI character-count restriction.
+function validPassword(value) { return typeof value === 'string' && value.length > 0 && Buffer.byteLength(value, 'utf8') <= PASSWORD_MAX_BYTES; }
+async function hashPassword(value) {
+  if (!validPassword(value)) throw Object.assign(new Error('กรุณากรอกรหัสผ่าน (ข้อมูลไม่เกิน 4096 ไบต์)'), { status: 422 });
+  const salt = crypto.randomBytes(16);
+  const hash = await derivePassword(value, salt, 64);
+  return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`;
+}
+async function verifyPassword(value, stored) {
+  if (!validPassword(value) || typeof stored !== 'string') return false;
+  if (stored.startsWith('scrypt$')) {
+    const parts = stored.split('$');
+    if (parts.length !== 3 || !/^[a-f0-9]{32}$/.test(parts[1]) || !/^[a-f0-9]{128}$/.test(parts[2])) return false;
+    const expected = Buffer.from(parts[2], 'hex');
+    const actual = await derivePassword(value, Buffer.from(parts[1], 'hex'), expected.length);
+    return crypto.timingSafeEqual(actual, expected);
+  }
+  if (stored.startsWith('$2')) return bcrypt.compare(value, stored); // Existing users still work.
+  return value === stored; // Read-only legacy compatibility; updated credentials use scrypt.
+}
+
 const { MongoClient, ObjectId } = require('mongodb');
 const config = require('./config');
 
@@ -1560,11 +1583,11 @@ router.get('/health', asyncHandler(async (req, res) => {
 
 router.post('/auth/login', loginRateLimit, asyncHandler(async (req, res) => {
   const username = cleanString(req.body.username);
-  const password = cleanString(req.body.password);
+  const password = req.body.password;
   const user = await req.db.collection('users').findOne({ username, is_active: { $ne: 0 } });
   if (!user) return jsonResponse(res, { success: false, message: 'ไม่พบผู้ใช้งาน' }, 401);
   const hash = user.password_hash || user.password || '';
-  const ok = hash.startsWith('$2') ? await bcrypt.compare(password, hash) : password === hash;
+  const ok = await verifyPassword(password, hash);
   if (!ok) return jsonResponse(res, { success: false, message: 'รหัสผ่านผิดพลาด' }, 401);
   const publicData = publicUser(user);
   const token = signUserToken(publicData);
@@ -1597,11 +1620,11 @@ router.post('/auth/admin-recovery', limitAdminRecovery, asyncHandler(async (req,
   const username = cleanString(req.body.username);
   const password = req.body.password;
   const currentUsername = cleanString(req.body.current_username);
-  if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username) || typeof password !== 'string' || password.length < 12 || password.length > 128 || password.trim() !== password) {
-    return jsonResponse(res, { success: false, message: 'Username ต้องมี 3–40 ตัว (ภาษาอังกฤษ ตัวเลข _ . -) และ Password ต้องยาว 12–128 ตัว' }, 422);
+  if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username) || !validPassword(password)) {
+    return jsonResponse(res, { success: false, message: 'Username ต้องมี 3–40 ตัว (ภาษาอังกฤษ ตัวเลข _ . -) และต้องกรอก Password' }, 422);
   }
   const users = req.db.collection('users');
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await hashPassword(password);
   const now = nowIso();
   const existingOwnerCount = await users.countDocuments({ role: 'owner', is_active: { $ne: 0 } });
   const duplicate = await users.findOne({ username });
@@ -1636,6 +1659,23 @@ router.post('/auth/admin-recovery', limitAdminRecovery, asyncHandler(async (req,
 }));
 
 router.get('/auth/me', requireAuth, (req, res) => jsonResponse(res, { success: true, user: req.user }));
+
+router.post('/auth/change-password', requireAuth, asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  const { current_password: currentPassword, new_password: newPassword } = req.body || {};
+  if (!validPassword(newPassword)) return jsonResponse(res, { success: false, message: 'กรุณาระบุรหัสผ่านใหม่ (ไม่เกิน 4096 ไบต์)' }, 422);
+  const id = oidOrNull(req.user.id);
+  if (!id) return jsonResponse(res, { success: false, message: 'ไม่พบบัญชี' }, 404);
+  const user = await req.db.collection('users').findOne({ _id: id, is_active: { $ne: 0 } });
+  if (!user || !await verifyPassword(currentPassword, user.password_hash || user.password || '')) {
+    return jsonResponse(res, { success: false, message: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' }, 403);
+  }
+  const passwordHash = await hashPassword(newPassword);
+  await req.db.collection('users').updateOne({ _id: id }, { $set: { password_hash: passwordHash, updated_at: nowIso() }, $unset: { password: '' }, $inc: { auth_version: 1 } });
+  jsonResponse(res, { success: true, message: 'เปลี่ยนรหัสผ่านแล้ว กรุณาเข้าสู่ระบบอีกครั้ง' });
+}));
+
+
 
 router.get('/item-types', (_req, res) => jsonResponse(res, { success: true, data: ITEM_TYPES }));
 
@@ -2091,11 +2131,11 @@ router.get('/users', requireAuth, requireOwner, asyncHandler(async (req, res) =>
 router.post('/users', requireAuth, requireOwner, asyncHandler(async (req, res) => {
   const branch = await resolveBranchContext(req.db, req.user, req);
   const username = cleanString(req.body.username);
-  const password = cleanString(req.body.password);
-  if (!username || !password) return jsonResponse(res, { success: false, message: 'กรอก username และ password' }, 422);
+  const password = req.body.password;
+  if (!username || !validPassword(password)) return jsonResponse(res, { success: false, message: 'กรอก username และ password' }, 422);
   const duplicate = await req.db.collection('users').findOne({ username });
   if (duplicate) return jsonResponse(res, { success: false, message: 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว' }, 409);
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await hashPassword(password);
   const doc = {
     ...branchFields(branch),
     name: cleanString(req.body.name) || username,
@@ -2148,8 +2188,15 @@ router.put('/users/:id', requireAuth, requireOwner, asyncHandler(async (req, res
     is_active: requestedActive,
     updated_at: nowIso(),
   };
-  if (cleanString(req.body.password)) update.password_hash = await bcrypt.hash(cleanString(req.body.password), 10);
-  await req.db.collection('users').updateOne({ _id: oid, branch_id: sourceBranch.id }, { $set: update });
+  if (req.body.password !== undefined && req.body.password !== '') {
+    if (!validPassword(req.body.password)) return jsonResponse(res, { success: false, message: 'รหัสผ่านไม่ถูกต้องหรือยาวเกินขนาดข้อมูลที่รองรับ' }, 422);
+    update.password_hash = await hashPassword(req.body.password);
+    update.auth_version = Number(existing.auth_version || 0) + 1;
+  }
+  if (requestedRole !== existing.role || requestedActive !== Number(existing.is_active ?? 1) || username !== existing.username) {
+    update.auth_version = Number(existing.auth_version || 0) + 1;
+  }
+  await req.db.collection('users').updateOne({ _id: oid, branch_id: sourceBranch.id }, { $set: update, ...(update.password_hash ? { $unset: { password: '' } } : {}) });
 
   if (targetBranch.id !== sourceBranch.id) {
     await req.db.collection('vehicles').updateMany(

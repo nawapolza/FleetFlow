@@ -10,6 +10,7 @@ import DeliveriesPage from './pages/DeliveriesPage.jsx';
 import EmployeeQuickPage from './pages/EmployeeQuickPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import AdminRecoveryPage from './pages/AdminRecoveryPage.jsx';
+import AccountPage from './pages/AccountPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import MonthlyReportsPage from './pages/MonthlyReportsPage.jsx';
 import StockPage from './pages/StockPage.jsx';
@@ -53,6 +54,7 @@ function AppShell() {
   const pages = useMemo(() => {
     if (!isOwner) {
       return {
+        account: <AccountPage key={`account-${pageKey}`} />,
         quick: <EmployeeQuickPage key={`quick-${pageKey}`} />,
         calculator: <FuelCalculatorPage key={`calculator-${pageKey}`} />,
         deliveries: <DeliveriesPage key={`deliveries-${pageKey}`} />,
@@ -61,6 +63,7 @@ function AppShell() {
       };
     }
     return {
+      account: <AccountPage key={`account-${pageKey}`} />,
       dashboard: <DashboardPage key={`dashboard-${pageKey}`} setPage={setPage} />,
       branches: <BranchesPage key={`branches-${pageKey}`} />,
       calculator: <FuelCalculatorPage key={`calculator-${pageKey}`} />,

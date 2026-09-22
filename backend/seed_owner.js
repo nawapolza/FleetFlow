@@ -1,6 +1,9 @@
 require('dotenv').config();
 
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const { promisify } = require('util');
+const derivePassword = promisify(crypto.scrypt);
+async function hashPassword(password) { const salt = crypto.randomBytes(16); const hash = await derivePassword(password, salt, 64); return `scrypt$${salt.toString('hex')}$${hash.toString('hex')}`; }
 const { MongoClient } = require('mongodb');
 const config = require('./config');
 
@@ -13,7 +16,7 @@ async function main() {
   const now = new Date().toISOString();
   const ownerPassword = process.env.OWNER_PASSWORD;
   const employeePassword = process.env.EMPLOYEE_PASSWORD;
-  if (!ownerPassword || !employeePassword || ownerPassword.length < 12 || employeePassword.length < 12) throw new Error('Set OWNER_PASSWORD and EMPLOYEE_PASSWORD (12+ chars) before seeding');
+  if (!ownerPassword || !employeePassword || Buffer.byteLength(ownerPassword, 'utf8') > 4096 || Buffer.byteLength(employeePassword, 'utf8') > 4096) throw new Error('Set nonempty OWNER_PASSWORD and EMPLOYEE_PASSWORD (up to 4096 bytes) before seeding');
 
   const users = [
     { username: 'owner', name: 'เจ้าของกิจการ', role: 'owner', password: ownerPassword },
@@ -34,7 +37,7 @@ async function main() {
         name: item.name,
         role: item.role,
         phone: '',
-        password_hash: await bcrypt.hash(item.password, 10),
+        password_hash: await hashPassword(item.password),
         is_active: 1,
         created_at: now,
         updated_at: now,

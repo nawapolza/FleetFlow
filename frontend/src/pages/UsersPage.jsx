@@ -69,7 +69,7 @@ export default function UsersPage() {
         <span className="page-orbit-code">09 / USER ACCESS</span>
         <div>
           <h1 className="page-title">จัดการพนักงาน</h1>
-          <p className="page-subtitle">สร้างบัญชี กำหนดบทบาท และควบคุมสิทธิ์ของทีมอย่างเป็นระบบ</p>
+          <p className="page-subtitle">เพิ่ม แก้ไข ปิดใช้งานบัญชี และกำหนดสิทธิ์แอดมินหรือพนักงาน</p>
         </div>
         <span className="page-orbit-signal">2 ROLES</span>
       </div>

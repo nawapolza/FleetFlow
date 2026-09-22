@@ -6865,3 +6865,20 @@ button, input, select, textarea { max-width: 100%; font: inherit; }
     max-height: 310px !important;
   }
 }
+
+/* Mobile safe canvas: cards/forms never push the layout beyond the viewport. */
+html, body, #root { width: 100%; max-width: 100%; min-width: 0; }
+.nova-app, .nova-workspace, .nova-main, .page-shell, .card, .card-clean, .mobile-form-card,
+.ledger-page, .ledger-grid, .ledger-panel, .ledger-filters, .ledger-form, .ledger-form > *,
+.form-content-stack, .app-form-body, .app-form-card, .receipt-card { min-width: 0; max-width: 100%; }
+.nova-main { width: 100%; overflow-x: clip; }
+.ledger-table-scroll { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.ledger-table { min-width: 660px; }
+.receipt-card, .receipt-card *, .ledger-panel, .ledger-panel * { overflow-wrap: anywhere; }
+@media (max-width: 640px) {
+  .nova-main { padding-left: max(10px,env(safe-area-inset-left)); padding-right: max(10px,env(safe-area-inset-right)); }
+  .ledger-grid, .ledger-filters, .ledger-form { grid-template-columns: minmax(0,1fr) !important; }
+  .ledger-hero, .ledger-panel, .receipt-card { border-radius: 1.15rem; }
+  .ledger-row-actions { display: flex; flex-wrap: wrap; }
+  input, select, textarea { min-width: 0; max-width: 100%; }
+}

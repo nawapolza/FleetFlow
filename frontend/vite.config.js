@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const backend = env.VITE_DEV_BACKEND_URL || 'http://localhost:4000';
   return ({
   plugins: [react()],
-  base: './',
+  base: '/',
   server: {
     host: '0.0.0.0',
     port: 5173,

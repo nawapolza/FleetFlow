@@ -8,3 +8,10 @@
 !**/.env.example
 node_modules/
 dist/
+
+# Private deployment settings and build artifacts
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules/
+**/dist/

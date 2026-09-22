@@ -1,4 +1,5 @@
 import {
+  KeyRound,
   Bell,
   Building2,
   Boxes,
@@ -25,6 +26,7 @@ import BrandMark from './BrandMark.jsx';
 import { confirmAction } from '../utils/alerts.js';
 
 const navBase = [
+  { key: 'account', label: 'บัญชีของฉัน', short: 'บัญชี', eyebrow: 'เปลี่ยนรหัสผ่าน', icon: KeyRound },
   { key: 'dashboard', label: 'หน้าหลัก', short: 'หน้าหลัก', eyebrow: 'ภาพรวมระบบ', icon: Gauge, ownerOnly: true },
   { key: 'branches', label: 'จัดการสาขา', short: 'สาขา', eyebrow: 'เพิ่ม แก้ไข และแยกข้อมูล', icon: Building2, ownerOnly: true },
   { key: 'calculator', label: 'คำนวณน้ำมัน', short: 'คำนวณ', eyebrow: 'ระยะทางและค่าใช้จ่าย', icon: Calculator },
