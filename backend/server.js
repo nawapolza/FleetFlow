@@ -417,6 +417,19 @@ async function ensureIndexes(db) {
   // V62: เปลี่ยนสต๊อกจาก unique เฉพาะประเภท เป็น unique ต่อ “สาขา + ประเภท”
   try { await db.collection('stocks').dropIndex('item_type_1'); } catch (_) {}
 
+  // Legacy deployments sometimes have a non-sparse unique users.email_1 index.
+  // Several username-only accounts then all receive email:null and the second
+  // insert fails with E11000. Drop ONLY that legacy optional-email index.
+  // Authentication here is by the unique username index, not by email.
+  const userIndexes = await db.collection('users').indexes();
+  const legacyEmailIndex = userIndexes.find((index) => index.name === 'email_1'
+    && index.unique === true && index.key?.email === 1
+    && Object.keys(index.key).length === 1);
+  if (legacyEmailIndex) {
+    await db.collection('users').dropIndex('email_1');
+    console.log('[users] Removed legacy unique email_1 index; username remains unique');
+  }
+
   await Promise.all([
     db.collection('branches').createIndex({ code: 1 }, { unique: true }),
     db.collection('branches').createIndex({ is_active: 1, is_default: -1 }),
@@ -1638,10 +1651,17 @@ router.post('/auth/admin-recovery', limitAdminRecovery, asyncHandler(async (req,
       if (err.code === 11000) return jsonResponse(res, { success: false, message: 'ตั้งค่าผู้ดูแลครั้งแรกไปแล้ว' }, 409);
       throw err;
     }
-    await users.insertOne({
-      ...branchFields(branch), name: username, username, password_hash: hash,
-      role: 'owner', auth_version: 1, phone: '', is_active: 1, created_at: now, updated_at: now,
-    });
+    try {
+      await users.insertOne({
+        ...branchFields(branch), name: username, username, password_hash: hash,
+        role: 'owner', auth_version: 1, phone: '', is_active: 1, created_at: now, updated_at: now,
+      });
+    } catch (error) {
+      // Allow the owner to retry after resolving a database/index failure.
+      await req.db.collection('system_settings').deleteOne({ _id: 'admin_initial_setup' });
+      if (error.code === 11000) return jsonResponse(res, { success: false, message: 'บัญชีซ้ำหรือดัชนี email เดิมยังมีปัญหา กรุณาตรวจสอบ users indexes' }, 409);
+      throw error;
+    }
     return jsonResponse(res, { success: true, message: 'สร้างผู้ดูแลแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีใหม่' });
   }
   if (!currentUsername) return jsonResponse(res, { success: false, message: 'กรอก Username ของแอดมินเดิมเพื่อรีเซ็ตบัญชี' }, 422);
@@ -2147,7 +2167,17 @@ router.post('/users', requireAuth, requireOwner, asyncHandler(async (req, res) =
     created_at: nowIso(),
     updated_at: nowIso(),
   };
-  const result = await req.db.collection('users').insertOne(doc);
+  let result;
+  try {
+    result = await req.db.collection('users').insertOne(doc);
+  } catch (error) {
+    if (error.code === 11000) {
+      return jsonResponse(res, { success: false, message: error.keyPattern?.username
+        ? 'ชื่อผู้ใช้นี้ถูกใช้งานแล้ว'
+        : 'พบดัชนีซ้ำในฐานข้อมูล โปรดให้ผู้ดูแลตรวจสอบ MongoDB users indexes' }, 409);
+    }
+    throw error;
+  }
   emitDataChanged('users', 'create', { id: String(result.insertedId) });
   jsonResponse(res, { success: true, data: publicUser({ ...doc, _id: result.insertedId }) });
 }));

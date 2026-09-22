@@ -180,3 +180,51 @@ button {cursor:pointer;}
 .rf-invoice-footer {display:flex;align-items:center;justify-content:space-between;gap:1rem;border-top:1px solid #fee2e2;background:#fff8f8;padding:1rem 1.4rem;}.rf-invoice-footer>span {font-size:.65rem;font-weight:900;letter-spacing:.08em;color:#a35d63;}.rf-invoice-actions {display:flex;gap:.5rem;}.rf-invoice-actions button {display:flex;align-items:center;gap:.4rem;min-height:37px;padding:.5rem .85rem;border:1px solid #fecdd3;border-radius:10px;background:#fff;color:#991b1b;font-size:.74rem;font-weight:850;}
 @media(max-width:980px){.rf-invoice-body {grid-template-columns:minmax(0,1fr);}.rf-invoice-section:first-child {grid-row:auto;}.rf-invoice-meta {grid-template-columns:repeat(2,minmax(0,1fr));}.rf-invoice-extra {grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:560px){.rf-invoice-head {padding:1.05rem;flex-direction:column;}.rf-invoice-id {width:100%;align-items:start;}.rf-invoice-id strong {text-align:left;}.rf-invoice-meta {padding:1rem;gap:.75rem;}.rf-invoice-body {padding:.85rem;gap:.85rem;}.rf-invoice-section {padding:1rem;}.rf-invoice-job-top {flex-wrap:wrap;}.rf-invoice-route {grid-template-columns:1fr;}.rf-invoice-numbers strong {font-size:1rem;}.rf-invoice-footer {align-items:start;flex-direction:column;padding:1rem;}.rf-invoice-actions {width:100%;}.rf-invoice-actions button {flex:1;justify-content:center;}}
+
+/* V-next: red / white consistency and readable responsive forms */
+:root {--rf-red:#b91c1c;--rf-muted:#fff5f5;}
+body, .rf-shell, .nova-app, .page-shell {background-color:#fffafa !important;}
+.bg-blue-600,.bg-blue-700,.bg-violet-600,.bg-violet-700,.bg-cyan-600,.bg-sky-600 {background-color:#b91c1c !important;color:#fff !important;}
+.bg-blue-50,.bg-blue-100,.bg-violet-50,.bg-violet-100,.bg-cyan-50,.bg-cyan-100,.bg-sky-50,.bg-sky-100,.bg-indigo-50,.bg-indigo-100 {background-color:#fff1f2 !important;}
+.bg-blue-950,.bg-blue-900,.bg-blue-800,.bg-violet-950,.bg-violet-900 {background-color:#991b1b !important;color:#fff !important;}
+.text-blue-600,.text-blue-700,.text-blue-800,.text-blue-900,.text-blue-950,.text-violet-600,.text-violet-700,.text-violet-800,.text-violet-900,.text-violet-950,.text-sky-700,.text-cyan-700,.text-indigo-700 {color:#991b1b !important;}
+.border-blue-100,.border-blue-200,.border-violet-100,.border-violet-200,.border-sky-100,.border-cyan-100,.border-indigo-100 {border-color:#fecdd3 !important;}
+.from-blue-950,.from-blue-900,.from-blue-800,.from-blue-700,.from-blue-600,.from-violet-900,.from-violet-700 {--tw-gradient-from:#991b1b var(--tw-gradient-from-position) !important;--tw-gradient-to:rgb(153 27 27 / 0) var(--tw-gradient-to-position) !important;}
+.via-blue-950,.via-blue-900,.via-blue-800,.via-violet-600 {--tw-gradient-to:rgb(185 28 28 / 0) var(--tw-gradient-to-position) !important;--tw-gradient-stops:var(--tw-gradient-from),#b91c1c var(--tw-gradient-via-position),var(--tw-gradient-to) !important;}
+.to-blue-700,.to-blue-600,.to-violet-600,.to-cyan-500 {--tw-gradient-to:#dc2626 var(--tw-gradient-to-position) !important;}
+.app-form-card .form-hero-summary,.app-form-card .form-progress-strip {gap:clamp(.8rem,1.5vw,1.4rem) !important;}
+.app-form-card .app-form-body,.app-form-card .form-content-stack {display:grid !important;gap:clamp(1.1rem,2vw,2rem) !important;min-width:0;}
+.app-form-card .form-content-stack>.section-card {margin:0 !important;min-width:0;}
+.app-form-card .field-grid,.app-form-card .section-fields {gap:clamp(1rem,2vw,1.6rem) !important;}
+.app-form-card label,.ledger-form label {min-width:0;max-width:100%;line-height:1.55;overflow-wrap:anywhere;}
+.app-form-card input,.app-form-card select,.app-form-card textarea,.ledger-form input,.ledger-form select {max-width:100%;min-width:0;}
+.app-form-card .form-hero-copy,.app-form-card .form-hero-brand,.app-form-card .form-hero-summary,.app-form-card .form-content-stack>* {min-width:0;max-width:100%;}
+input[type=date],input[type=time],input[type=number] {min-width:0;max-width:100%;}
+.ledger-kpi.violet,.ledger-kpi.mint,.ledger-kpi.rose {background:#fff1f2 !important;color:#991b1b !important;border-color:#fecdd3 !important;}
+.ledger-kpi strong,.ledger-categories strong,.ledger-heading-icon,.ledger-pill,.ledger-row-actions button,.ledger-eyebrow {color:#991b1b !important;}
+.ledger-hero-art,.ledger-pill,.ledger-row-actions button {background:#fff1f2 !important;border-color:#fecdd3 !important;}
+.ledger-note {background:#fff7f7 !important;color:#991b1b !important;}
+.ledger-categories>div,.ledger-table th {background:#fff7f7 !important;border-color:#fee2e2 !important;color:#991b1b !important;}
+.ledger-positive,.ledger-negative {color:#991b1b !important;}
+@media(max-width:640px){.rf-main,.nova-main {padding-inline:max(.8rem,env(safe-area-inset-left)) !important;padding-right:max(.8rem,env(safe-area-inset-right)) !important;}.app-form-card .section-card,.app-form-card .section-head {max-width:100%;}.app-form-card .field-grid,.app-form-card .section-fields {grid-template-columns:minmax(0,1fr) !important;gap:1rem !important;}.rf-invoice-body,.rf-invoice-meta,.rf-invoice-route {min-width:0;max-width:100%;}.rf-invoice-headline,.rf-invoice-section {min-width:0;}.rf-invoice-headline p,.rf-invoice-job-top strong {overflow-wrap:anywhere;}}
+/* Explicit overrides for custom selectors in the older fuel form */
+.app-form-card .vehicle-rate-auto.is-ready .readonly-value,
+.app-form-card .vehicle-rate-auto.is-missing .readonly-value,
+.app-form-card .distance-result-auto .readonly-value,
+.app-form-card .actual-fuel-field input,
+.app-form-card .fuel-variance-field .readonly-value {
+  background:#fff1f2 !important;
+  background-image:none !important;
+  border:1px solid #fecdd3 !important;
+  color:#991b1b !important;
+  box-shadow:none !important;
+}
+.app-form-card .distance-result-auto .readonly-value {background:#b91c1c !important;color:#fff !important;}
+.app-form-card .vehicle-linked-status,
+.app-form-card .vehicle-linked-hint,
+.app-form-card .form-branch-badge {background:#fff7f7 !important;border-color:#fecdd3 !important;color:#991b1b !important;}
+.app-form-card .delivery-manual-mode {background:#fff7f7 !important;border-color:#fecdd3 !important;color:#991b1b !important;}
+.app-form-card .section-head,.app-form-card .section-icon {border-color:#fee2e2 !important;color:#991b1b !important;}
+.app-form-card .app-form-body {padding:clamp(1rem,2vw,2rem) !important;}
+.app-form-card .field-featured,.app-form-card .field-wide {min-width:0 !important;max-width:100% !important;}
+@media(max-width:640px){.app-form-card .form-progress-strip {gap:.75rem !important;}.app-form-card .app-form-body {padding:1rem !important;}.app-form-card .section-head {padding:1rem !important;}}

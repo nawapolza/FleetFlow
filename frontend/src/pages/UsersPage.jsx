@@ -7,7 +7,7 @@ import { useBranch } from '../contexts/BranchContext.jsx';
 import { useRealtime } from '../hooks/useRealtime.js';
 import { alertError, confirmDanger, toastSuccess } from '../utils/alerts.js';
 
-const blankForm = (branchId = '') => ({ name: '', username: '', password: '', phone: '', role: 'employee', is_active: 1, branch_id: branchId });
+const blankForm = () => ({ name: '', username: '', password: '', phone: '', role: 'employee', is_active: 1, branch_id: '' });
 
 export default function UsersPage() {
   const { activeBranch, activeBranchId, activeBranches } = useBranch();
@@ -35,9 +35,9 @@ export default function UsersPage() {
     e.preventDefault();
     try {
       if (editing) await api.updateUser(editing.id, form);
-      else await api.createUser(form);
+      else { const { branch_id, ...fields } = form; await api.createUser(fields); }
       toastSuccess(editing ? 'แก้ไขผู้ใช้แล้ว' : 'สร้างผู้ใช้แล้ว');
-      setForm(blankForm(activeBranchId)); setEditing(null); load(true);
+      setForm(blankForm()); setEditing(null); load(true);
     } catch (err) { alertError(err, 'บันทึกผู้ใช้ไม่ได้'); }
   }
 
@@ -73,7 +73,7 @@ export default function UsersPage() {
         </div>
         <span className="page-orbit-signal">2 ROLES</span>
       </div>
-      <BranchScopeBar label="ทีมงานของสาขา" detail="บัญชีใหม่จะผูกกับสาขาที่เลือก และสามารถย้ายพนักงานไปสาขาอื่นได้โดยไม่ลบประวัติ" />
+      <BranchScopeBar label="ทีมงานของสาขา" detail="ตอนเพิ่มผู้ใช้ไม่จำเป็นต้องกรอกสาขา ระบบจะผูกกับสาขาที่แอดมินกำลังจัดการ และแอดมินสามารถแก้ไขภายหลังได้" />
       <section className="role-permission-grid" aria-label="สรุปสิทธิ์ผู้ใช้งาน">
         <div className="role-permission-card is-owner">
           <div><ShieldCheck size={20} /><strong>เจ้าของกิจการ</strong></div>
@@ -93,11 +93,11 @@ export default function UsersPage() {
           <Field required={!editing} type="password" autoComplete="new-password" label={editing ? 'รหัสผ่านใหม่ (ไม่เปลี่ยนให้เว้นว่าง)' : 'รหัสผ่าน'} value={form.password} onChange={(v) => setForm({ ...form, password: v })} />
           <Field label="เบอร์โทร" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
           <label className="block"><span className="label">ระดับสิทธิ์การใช้งาน</span><select className="input mt-1" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}><option value="employee">พนักงาน</option><option value="owner">เจ้าของกิจการ</option></select></label>
-          {editing ? <label className="block"><span className="label">สาขาสังกัด</span><select className="input mt-1" value={form.branch_id || activeBranchId} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}>{activeBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>)}</select><p className="hint mt-1">ย้ายสาขาได้โดยไม่ลบประวัติรายการเดิม รถที่เคยผูกจะเปลี่ยนเป็นรถใช้ทั่วไปของสาขาเดิม</p></label> : <label className="block"><span className="label">สาขาสังกัด</span><input className="input mt-1" value={`${activeBranch?.name || '-'} (${activeBranch?.code || '-'})`} readOnly /></label>}
+          {editing && <label className="block"><span className="label">สาขาสังกัด (แอดมินเปลี่ยนภายหลังได้)</span><select className="input mt-1" value={form.branch_id || activeBranchId} onChange={(e) => setForm({ ...form, branch_id: e.target.value })}>{activeBranches.map((branch) => <option key={branch.id} value={branch.id}>{branch.name} ({branch.code})</option>)}</select><p className="hint mt-1">สาขาที่มีสิทธิ์เข้าถึงกำหนดโดยแอดมินเท่านั้น</p></label>}
           {editing && <label className="block"><span className="label">สถานะบัญชี</span><select className="input mt-1" value={form.is_active} onChange={(e) => setForm({ ...form, is_active: Number(e.target.value) })}><option value={1}>ใช้งาน</option><option value={0}>ปิดใช้งาน</option></select></label>}
           <div className="flex gap-2 md:items-end">
             <button className="btn-primary flex-1">{editing ? 'บันทึกการแก้ไข' : 'เพิ่มผู้ใช้งาน'}</button>
-            {editing && <button type="button" className="btn-soft" onClick={() => { setEditing(null); setForm(blankForm(activeBranchId)); }}>ยกเลิก</button>}
+            {editing && <button type="button" className="btn-soft" onClick={() => { setEditing(null); setForm(blankForm()); }}>ยกเลิก</button>}
           </div>
         </div>
       </form>

@@ -6882,3 +6882,5 @@ html, body, #root { width: 100%; max-width: 100%; min-width: 0; }
   .ledger-row-actions { display: flex; flex-wrap: wrap; }
   input, select, textarea { min-width: 0; max-width: 100%; }
 }
+
+/* TEST SYSTEM theme: accent colors are standardized in redesign.css (loaded last). */
