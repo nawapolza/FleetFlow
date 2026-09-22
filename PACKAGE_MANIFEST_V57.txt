@@ -1,0 +1,20 @@
+Heng Charoen Phuetphon Fuel System — PACKAGE MANIFEST V57
+
+Version: 57.0.0
+Date: 2026-07-31
+
+Changes in V57
+1. Fixed timeline spacing in the close-job summary popup.
+2. Prevented timeline icons from covering or overlapping the detail text.
+3. Reworked the timeline row layout to use a clean flex structure.
+4. Improved left/right spacing for clearer readability on mobile screens.
+5. Preserved all mobile save/share/fullscreen image features from V56.
+
+Key files updated
+- frontend/src/components/CaptureReceiptModal.jsx
+- package.json
+- frontend/package.json
+
+Expected result
+- In "รายละเอียดงาน" the icon no longer blocks the text.
+- Timeline entries are easier to read and have better spacing.

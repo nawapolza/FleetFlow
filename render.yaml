@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: heng-charoen-fuel-backend
+    env: node
+    rootDir: backend
+    buildCommand: node ../scripts/verify-v62.js && npm ci --no-audit --no-fund
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DB
+        value: test_system_db
+      - key: JWT_SECRET
+        sync: false
+      - key: CORS_ALLOW_ALL
+        value: true
+      - key: APP_TIMEZONE
+        value: Asia/Bangkok
+
+  - type: web
+    name: heng-charoen-fuel-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: node ../scripts/verify-v62.js && npm ci --include=dev --no-audit --no-fund && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: VITE_API_URL
+        value: https://heng-charoen-fuel-backend.onrender.com

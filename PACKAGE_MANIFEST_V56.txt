@@ -1,0 +1,20 @@
+Heng Charoen Phuetphon Fuel System — PACKAGE MANIFEST V56
+
+Version: 56.0.0
+Date: 2026-07-31
+
+Changes in V56
+1. Removed number bubbles 3 / 4 / 5 from the close-job timeline on mobile.
+2. Replaced them with cleaner minimal timeline dots/check style.
+3. Reduced the left timeline spacing to make the layout look cleaner and more balanced.
+4. Preserved mobile save/share and one-screen summary behavior from V55.
+
+Key files updated
+- frontend/src/components/CaptureReceiptModal.jsx
+- package.json
+- frontend/package.json
+
+Expected result
+- The close-job popup looks cleaner and prettier.
+- No more large numbered circles.
+- The timeline remains understandable with a minimal visual style.

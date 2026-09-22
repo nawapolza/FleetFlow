@@ -1,0 +1,20 @@
+Heng Charoen Phuetphon Fuel System — PACKAGE MANIFEST V54
+
+Version: 54.0.0
+Date: 2026-07-31
+
+Changes in V54
+1. Reworked final close-job popup to better match the sample image.
+2. Added a job-detail timeline section with steps 3, 4, and 5.
+3. Added final summary block that clearly shows "ขึ้นงาน" and "ลงงาน".
+4. Kept income and fuel detail sections below the summary.
+5. Preserved previous V53 route summary support.
+
+Key files updated
+- frontend/src/components/CaptureReceiptModal.jsx
+- package.json
+- frontend/package.json
+
+Expected result
+- After saving, the last screen shows a summary that looks much closer to the sample the user sent.
+- User can immediately see where the job started and where it ended in the final summary.

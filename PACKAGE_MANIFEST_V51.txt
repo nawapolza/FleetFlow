@@ -1,0 +1,30 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM — V51 FULL PACKAGE
+======================================================
+
+VERSION
+- Root: 51.0.0
+- Frontend: 51.0.0
+- Backend: 51.0.0
+
+MAIN CHANGE
+- Primary diesel input changed to distance in kilometers
+- Automatic formula: distance_km / vehicle_km_per_liter = recommended fuel liters
+- Automatic amount: recommended liters x price per liter
+- Backend recalculates the same formula before saving and stock deduction
+- Existing records and non-diesel items remain backward compatible
+
+UPDATED COVERAGE
+- Delivery entry form
+- Validation and confirmation messages
+- Backend normalization
+- Stock deduction/restoration
+- Web receipt card
+- Saved PNG receipt
+- Field labels and API metadata
+
+BUILD
+1. npm run install:all
+2. npm run dev:backend
+3. npm run dev:frontend
+
+See README.md and FUEL_DISTANCE_TO_RATE_V51.md for details.

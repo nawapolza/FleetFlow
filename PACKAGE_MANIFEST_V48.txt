@@ -1,0 +1,41 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM
+Release: V48.0.0 — LITERS TO DISTANCE
+
+PACKAGE CONTENT
+- Backend source code
+- Frontend source code
+- Database notes
+- Render configuration
+- Git repository metadata from the supplied project
+- V48 fuel-distance documentation
+
+PRIMARY V48 FEATURES
+- Set average fuel efficiency per vehicle in km/liter
+- Auto-fill the vehicle rate after selecting a plate number
+- Calculate estimated distance immediately from liters × km/liter
+- Persist a manually entered rate back to that vehicle for future entries
+- Keep estimated distance separate from optional actual distance
+- Show estimated distance, actual distance, expected rate, and actual efficiency on receipt cards
+- Backward-compatible MongoDB fields; no destructive database migration required
+
+FORMULA EXAMPLE
+- 223 liters × 3.00 km/liter = 669.00 km estimated distance
+
+VALIDATION COMPLETED
+- Modified JSX syntax parse: passed
+- Backend JavaScript syntax check: passed
+- JSON package files: valid
+- Calculation test cases: passed
+- Git whitespace check: passed
+
+INSTALL
+1. npm run install:all
+2. npm run dev:backend
+3. npm run dev:frontend
+
+PRODUCTION BUILD
+1. Use Node.js 20.x
+2. npm run build
+
+NOTE
+- The source validation environment could not download frontend dependencies because its package registry did not provide Vite. The modified JSX was parsed independently and passed syntax validation.

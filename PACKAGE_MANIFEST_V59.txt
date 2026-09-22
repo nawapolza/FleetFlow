@@ -1,0 +1,26 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM — V59.0.0
+================================================
+Release: Mobile Professional UX
+
+Major updated files:
+- frontend/src/components/DeliveryForm.jsx
+- frontend/src/pages/DeliveriesPage.jsx
+- frontend/src/pages/StockPage.jsx
+- frontend/src/pages/VehiclesPage.jsx
+- frontend/src/index.css
+- README.md
+- RELEASE_NOTES_V59.md
+
+Compatibility:
+- Existing MongoDB data: supported
+- Existing V58 multi-job records: supported
+- Existing local draft key: preserved
+- Backend API: unchanged and compatible
+- Render Node runtime: 20.x
+
+Verification:
+- Merge markers: none
+- package.json / package-lock.json: valid JSON
+- JavaScript/JSX syntax: passed 21 files with TypeScript transpile parser
+- Backend Node syntax: passed
+- CSS brace balance: passed

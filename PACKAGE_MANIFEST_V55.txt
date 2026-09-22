@@ -1,0 +1,26 @@
+Heng Charoen Phuetphon Fuel System — PACKAGE MANIFEST V55
+
+Version: 55.0.0
+Date: 2026-07-31
+
+Main fixes
+1. Mobile image saving now uses the native Share Sheet first when supported.
+2. iPhone/iPad fallback opens an in-app full-image preview for long-press saving.
+3. Android and desktop retain download/file-picker fallbacks.
+4. Receipt PNG is redesigned to 1080 x 1920 for a one-screen mobile capture preview.
+5. Main close-job popup is compact and shows route, weights, income, and fuel summary without opening details.
+6. Fuel details and attached photos are placed in a collapsible section to control vertical height.
+7. Removed the old CSS rule that clipped the receipt content on mobile.
+8. Added safe-area, dynamic viewport height, narrow-screen, and short-screen support.
+
+Key files updated
+- frontend/src/components/CaptureReceiptModal.jsx
+- frontend/src/utils/receiptImage.js
+- frontend/src/index.css
+- package.json
+- package-lock.json
+- frontend/package.json
+- frontend/package-lock.json
+
+Database migration
+- Not required.

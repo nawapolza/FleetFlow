@@ -1,0 +1,132 @@
+import { CheckCircle2, Eye, EyeOff, Leaf, LockKeyhole, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { useState } from 'react';
+import BrandMark from '../components/BrandMark.jsx';
+import { useAuth } from '../contexts/AuthContext.jsx';
+import { alertError, toastSuccess } from '../utils/alerts.js';
+
+export default function LoginPage() {
+  const { login } = useAuth();
+  const [form, setForm] = useState({ username: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await login(form.username, form.password);
+      toastSuccess('เข้าสู่ระบบสำเร็จ');
+    } catch (err) {
+      alertError(err, 'เข้าสู่ระบบไม่ได้');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="heng-login-page">
+      <div className="heng-login-orb heng-login-orb-one" />
+      <div className="heng-login-orb heng-login-orb-two" />
+
+      <div className="heng-login-shell">
+        <section className="heng-login-story">
+          <div>
+            <div className="flex items-center gap-3">
+              <BrandMark className="login-logo-card h-24 w-24 rounded-[2rem] text-base tracking-[0.32em]" />
+              <div>
+                <p className="text-xs font-black uppercase tracking-[.22em] text-violet-200">TEST SYSTEM</p>
+                <h1 className="mt-1 text-3xl font-black tracking-tight text-white">Test System</h1>
+              </div>
+            </div>
+
+            <h2 className="mt-12 max-w-lg text-4xl font-black leading-tight text-white lg:text-5xl">ระบบจัดการงานขนส่งและน้ำมัน โทนพาสเทล ทันสมัย และพร้อมใช้งานจริง</h2>
+            <p className="mt-5 max-w-xl text-base font-semibold leading-8 text-violet-100/90">จัดการรายการน้ำมัน ใบสรุปงาน รถ คนขับ และรายงานแบบมืออาชีพในหน้าจอเดียว รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์</p>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <StoryPoint icon={Sparkles} label="Modern UI" />
+            <StoryPoint icon={Leaf} label="Pastel Theme" />
+            <StoryPoint icon={ShieldCheck} label="Secure Access" />
+          </div>
+        </section>
+
+        <section className="heng-login-form-panel">
+          <div className="mx-auto w-full max-w-md">
+            <div className="mb-8">
+              <div className="mb-5 md:hidden">
+                <BrandMark className="h-16 w-16 rounded-[1.4rem] text-sm tracking-[0.28em]" />
+              </div>
+              <span className="heng-kicker">Test System สำหรับพนักงานและผู้ดูแล</span>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-stone-950">ยินดีต้อนรับกลับ</h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-stone-500">เข้าสู่ระบบเพื่อเริ่มบันทึก ตรวจสอบข้อมูล และออกใบสรุปรายการของ Test System</p>
+            </div>
+
+            <form onSubmit={onSubmit} className="space-y-4">
+              <label className="block">
+                <span className="label">ชื่อผู้ใช้</span>
+                <div className="input-icon-wrap mt-1.5">
+                  <span className="input-icon-left"><UserRound size={19} /></span>
+                  <input
+                    className="input input-has-left-icon"
+                    value={form.username}
+                    onChange={(e) => setForm({ ...form, username: e.target.value })}
+                    placeholder="กรอกชื่อผู้ใช้"
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+              </label>
+
+              <label className="block">
+                <span className="label">รหัสผ่าน</span>
+                <div className="input-icon-wrap mt-1.5">
+                  <span className="input-icon-left"><LockKeyhole size={19} /></span>
+                  <input
+                    className="input input-has-left-icon input-has-right-icon"
+                    type={showPassword ? 'text' : 'password'}
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    placeholder="กรอกรหัสผ่าน"
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="input-icon-right-button"
+                    aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </label>
+
+              <button disabled={loading} className="btn-primary w-full text-base">
+                {loading ? 'กำลังตรวจสอบข้อมูล...' : 'เข้าสู่ระบบ'}
+              </button>
+            </form>
+
+            <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/80 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 shrink-0 text-violet-700" size={18} />
+                <div>
+                  <p className="text-sm font-black text-violet-950">พร้อมใช้งานบนทุกขนาดหน้าจอ</p>
+                  <p className="mt-1 text-xs font-bold leading-5 text-violet-900/70">ระบบจะแสดงเฉพาะเมนูที่บัญชีของคุณได้รับสิทธิ์ และใช้ธีมสีพาสเทลใหม่ให้อ่านง่ายขึ้น</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function StoryPoint({ icon: Icon, label }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/7 p-4 backdrop-blur">
+      <Icon size={20} className="text-violet-200" />
+      <p className="mt-3 text-sm font-black text-white">{label}</p>
+    </div>
+  );
+}

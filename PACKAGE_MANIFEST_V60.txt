@@ -1,0 +1,130 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM V60 - FULL SOURCE PACKAGE
+Generated: 2026-08-03 (Asia/Bangkok)
+Version: 60.0.0
+
+Included modules:
+- Fuel distance/cost/efficiency calculator
+- Actual vs standard fuel analysis
+- Employee fuel recording and read-only realtime stock
+- Owner realtime dashboard and stock controls
+- Physical stock audit and low/critical alerts
+- Monthly owner/accounting report, print/PDF and CSV
+- Owner/employee role separation
+- MongoDB non-destructive automatic field/index setup
+- Responsive mobile/tablet/desktop UI
+- Windows and Unix local start helpers
+
+Not included by design:
+- Company introduction page
+- node_modules (install with npm run install:all)
+- .git history
+- Real .env secrets
+
+Validation:
+- Backend node syntax: passed
+- Frontend/backend JS/JSX parser scan: passed (27 files)
+- Merge marker and JSON verification: passed
+- V60 route/page/version/secret checks: passed
+
+Files:
+.gitignore
+.node-version
+.nvmrc
+BLUE_AUTO_DISTANCE_V49.md
+FUEL_DISTANCE_TO_RATE_V51.md
+FUEL_DISTANCE_V48.md
+GIT_READY.md
+GIT_READY_V46.md
+INSTALL_WINDOWS.bat
+MOBILE_UX_V45.md
+MONGODB_CHANGES_V60.md
+PACKAGE_MANIFEST_V47.txt
+PACKAGE_MANIFEST_V48.txt
+PACKAGE_MANIFEST_V49.txt
+PACKAGE_MANIFEST_V50.txt
+PACKAGE_MANIFEST_V51.txt
+PACKAGE_MANIFEST_V52.txt
+PACKAGE_MANIFEST_V53.txt
+PACKAGE_MANIFEST_V54.txt
+PACKAGE_MANIFEST_V55.txt
+PACKAGE_MANIFEST_V56.txt
+PACKAGE_MANIFEST_V57.txt
+PACKAGE_MANIFEST_V58.txt
+PACKAGE_MANIFEST_V59.txt
+README.md
+RELAYOUT_NOTES.md
+RELEASE_NOTES_V52.md
+RELEASE_NOTES_V53.md
+RELEASE_NOTES_V54.md
+RELEASE_NOTES_V55.md
+RELEASE_NOTES_V56.md
+RELEASE_NOTES_V57.md
+RELEASE_NOTES_V58.md
+RELEASE_NOTES_V59.md
+RELEASE_NOTES_V60.md
+RENDER_FIX.md
+RENDER_MERGE_FIX_V58_0_1.md
+START_LOCAL_WINDOWS.bat
+TEST_REPORT_V60.md
+UI_PREVIEW.html
+UI_PREVIEW_V46.html
+UXUI_V46.md
+UXUI_V47_CONTROL_DECK.md
+UXUI_V50_BLUE_OPERATIONS.md
+backend/.dockerignore
+backend/.env.example
+backend/Dockerfile
+backend/config.js
+backend/package-lock.json
+backend/package.json
+backend/seed_owner.js
+backend/server.js
+database/mongodb-notes.md
+frontend/.env.example
+frontend/.node-version
+frontend/.npmrc
+frontend/index.html
+frontend/package-lock.json
+frontend/package.json
+frontend/postcss.config.js
+frontend/public/apple-touch-icon.png
+frontend/public/favicon-32.png
+frontend/public/favicon.ico
+frontend/public/icon-192.png
+frontend/public/icon-512.png
+frontend/public/logo-heng.png
+frontend/public/logo-heng.svg
+frontend/public/manifest.webmanifest
+frontend/src/App.jsx
+frontend/src/api.js
+frontend/src/components/CaptureReceiptModal.jsx
+frontend/src/components/DeliveryForm.jsx
+frontend/src/components/DeliveryReceiptCard.jsx
+frontend/src/components/Layout.jsx
+frontend/src/components/Loading.jsx
+frontend/src/contexts/AuthContext.jsx
+frontend/src/hooks/useRealtime.js
+frontend/src/index.css
+frontend/src/main.jsx
+frontend/src/pages/DashboardPage.jsx
+frontend/src/pages/DeliveriesPage.jsx
+frontend/src/pages/EmployeeQuickPage.jsx
+frontend/src/pages/FuelCalculatorPage.jsx
+frontend/src/pages/LoginPage.jsx
+frontend/src/pages/MonthlyReportsPage.jsx
+frontend/src/pages/NotificationsPage.jsx
+frontend/src/pages/StockPage.jsx
+frontend/src/pages/StockStatusPage.jsx
+frontend/src/pages/UsersPage.jsx
+frontend/src/pages/VehiclesPage.jsx
+frontend/src/utils/alerts.js
+frontend/src/utils/format.js
+frontend/src/utils/receiptImage.js
+frontend/tailwind.config.js
+frontend/vite.config.js
+package-lock.json
+package.json
+render.yaml
+scripts/verify-project.js
+scripts/verify-v60.js
+start-local.sh

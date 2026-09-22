@@ -1,0 +1,45 @@
+Heng Charoen Phuetphon Fuel System — PACKAGE MANIFEST V58
+
+Version: 58.0.0
+Date: 2026-08-01
+
+Main feature
+- One vehicle record can contain multiple transport jobs.
+
+Multi-job fields per job
+- Job/cargo name
+- Origin and destination
+- Load and unload dates
+- Distance
+- Loading and unloading weight
+- Stone and wood-chip legacy weight fields
+- Trip fee, allowance, other income, total income
+- Wage payer, payment status, note
+
+Automatic totals
+- Job count
+- Total distance used for fuel-rate calculation
+- Total loading/unloading weight
+- Total stone/wood-chip weight
+- Total trip fee, allowance, other income and total income
+
+Compatibility
+- Existing single-job records are converted at read time into one legacy job.
+- No MongoDB migration is required.
+- Legacy top-level delivery fields remain available.
+
+Key files updated
+- backend/server.js
+- frontend/src/components/DeliveryForm.jsx
+- frontend/src/components/DeliveryReceiptCard.jsx
+- frontend/src/components/CaptureReceiptModal.jsx
+- frontend/src/pages/DashboardPage.jsx
+- frontend/src/utils/receiptImage.js
+- package.json
+- frontend/package.json
+- backend/package.json
+- README.md
+
+Validation
+- Backend JavaScript syntax: passed
+- Frontend JSX/JavaScript syntax (21 files): passed

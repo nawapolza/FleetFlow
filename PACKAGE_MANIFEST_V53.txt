@@ -1,0 +1,23 @@
+Heng Charoen Phuetphon Fuel System — PACKAGE MANIFEST V53
+
+Version: 53.0.0
+Date: 2026-07-31
+
+Changes in V53
+1. Improved close-job summary after saving to clearly show route details.
+2. Added prominent route summary block: origin_place -> destination_place.
+3. Added explicit labels "ขึ้นงาน" and "ลงงาน" in the summary popup.
+4. Updated DeliveryReceiptCard to show route details more clearly.
+5. Updated PNG receipt generator so downloaded image also shows route summary.
+6. Preserved weight, income, and fuel details from V52.
+
+Key files updated
+- frontend/src/components/CaptureReceiptModal.jsx
+- frontend/src/components/DeliveryReceiptCard.jsx
+- frontend/src/utils/receiptImage.js
+- package.json
+- frontend/package.json
+
+Expected result
+- When user taps save, the popup summary now makes it obvious "ขึ้นงานไหน / ลงงานไหน" like the sample image.
+- Downloaded PNG also includes the same route summary.

@@ -1,0 +1,45 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM — V50 FULL PACKAGE
+======================================================
+
+VERSION
+- Root: 50.0.0
+- Frontend: 50.0.0
+- Backend: 50.0.0
+
+MAIN STACK
+- Frontend: React 18 + Vite 6 + Tailwind CSS 3 + Lucide React
+- Backend: Node.js + Express + MongoDB + Socket.IO
+- Authentication: JWT + bcrypt
+
+V50 UI COVERAGE
+- Login
+- Desktop Sidebar / Topbar
+- Mobile Header / Bottom Navigation / Menu Sheet
+- Owner Dashboard
+- Employee Quick Entry
+- Delivery History
+- Stock Management
+- Vehicle / Driver Management
+- User / Role Management
+- Notifications
+- Delivery Receipt
+- Save Receipt PNG Modal
+
+ROLE COVERAGE
+- Owner/Admin: all management pages
+- Employee/User: quick entry and authorized history
+
+FUNCTIONS PRESERVED
+- Existing APIs and MongoDB schema
+- Realtime update
+- Upload photos/documents
+- Automatic vehicle-rate distance calculation
+- Stock deduction/restoration
+- PNG receipt export
+
+BUILD
+1. npm run install:all
+2. npm run dev:backend
+3. npm run dev:frontend
+
+See README.md and UXUI_V50_BLUE_OPERATIONS.md for details.

@@ -1,0 +1,17 @@
+{
+  "name": "heng-charoen-phuetphon-fuel-system",
+  "version": "78.0.0",
+  "private": true,
+  "scripts": {
+    "verify": "node scripts/verify-project.js",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "cd frontend && npm ci --include=dev --no-audit --no-fund && node ./node_modules/vite/bin/vite.js build",
+    "start": "cd backend && npm start",
+    "verify:v62": "node scripts/verify-v62.js"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}

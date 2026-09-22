@@ -1,0 +1,36 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM
+Release: V47.0.0 — HENG CONTROL DECK
+
+PACKAGE CONTENT
+- Backend source code
+- Frontend source code
+- Database files
+- Render configuration
+- Git repository metadata from the supplied project
+- UX/UI V47 implementation and documentation
+
+PRIMARY V47 FEATURES
+- Completely redesigned desktop navigation and workspace
+- Mobile floating navigation dock and full menu bottom sheet
+- New animated save-success popup
+- New cards, forms, tables, status indicators, dialogs and loading UI
+- Responsive behavior for small phones, phones, tablets and desktop
+- Print-safe rules retained
+
+VALIDATION COMPLETED
+- JSX/JavaScript syntax parse: 21 files, 0 syntax failures
+- CSS brace structure: valid
+- JSON files: valid
+- Git diff whitespace check: passed
+
+INSTALL
+1. cd frontend
+2. npm install
+3. npm run dev
+
+PRODUCTION BUILD
+1. cd frontend
+2. npm run build
+
+REQUIRED NODE VERSION
+- Node.js 20.x

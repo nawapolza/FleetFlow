@@ -1,0 +1,24 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM V52.0.0
+
+MAIN CHANGES
+- Close-job form with loading/unloading locations and weights
+- Trip fee, allowance, other income, automatic total income
+- Auto popup after saving
+- Full close-job PNG receipt
+- Backend persistence for all new fields
+- Existing V51 distance-to-fuel calculation retained
+
+IMPORTANT FILES
+- frontend/src/components/DeliveryForm.jsx
+- frontend/src/components/CaptureReceiptModal.jsx
+- frontend/src/components/DeliveryReceiptCard.jsx
+- frontend/src/utils/receiptImage.js
+- frontend/src/utils/format.js
+- backend/server.js
+- README.md
+- RELEASE_NOTES_V52.md
+
+VERSION
+- Root: 52.0.0
+- Frontend: 52.0.0
+- Backend: 52.0.0

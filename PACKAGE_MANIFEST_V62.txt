@@ -1,0 +1,48 @@
+HENG CHAROEN PHUETPHON FUEL SYSTEM — FULL V62 MULTI-BRANCH
+Version: 62.0.0
+Build: heng-charoen-v62-multi-branch
+
+CORE
+- backend/server.js                         Multi-branch API, migration, stock/report scope
+- backend/config.js                         MongoDB / JWT / CORS / timezone configuration
+- frontend/src/api.js                       X-Branch-Id and branch CRUD client
+- frontend/src/App.jsx                      BranchProvider and page remount on branch change
+- frontend/src/contexts/BranchContext.jsx   Active branch state and persistence
+- frontend/src/components/Layout.jsx        Global branch selector
+- frontend/src/components/BranchScopeBar.jsx Shared branch context banner
+- frontend/src/pages/BranchesPage.jsx       Add/edit/select/disable/reactivate branches
+- frontend/src/pages/StockPage.jsx          Branch-separated owner stock control
+- frontend/src/pages/StockStatusPage.jsx    Branch-separated employee stock status
+- frontend/src/components/DeliveryForm.jsx  Branch badge and branch-specific drafts
+- frontend/src/pages/DashboardPage.jsx      Branch dashboard
+- frontend/src/pages/MonthlyReportsPage.jsx Branch CSV/print report
+- frontend/src/pages/DeliveriesPage.jsx     Branch delivery history
+- frontend/src/pages/VehiclesPage.jsx       Branch vehicles/drivers
+- frontend/src/pages/UsersPage.jsx          Branch employee accounts, transfer and reactivate
+- frontend/src/pages/NotificationsPage.jsx  Branch notifications
+- frontend/src/pages/FuelCalculatorPage.jsx Branch vehicle/stock calculator
+
+DEPLOYMENT
+- render.yaml
+- backend/.env.example
+- frontend/.env.example
+- package.json / package-lock.json
+- backend/package.json / backend/package-lock.json
+- frontend/package.json / frontend/package-lock.json
+- INSTALL_WINDOWS.bat
+- START_LOCAL_WINDOWS.bat
+- start-local.sh
+
+VERIFICATION & DOCUMENTATION
+- scripts/verify-project.js
+- scripts/verify-v62.js
+- README.md
+- RELEASE_NOTES_V62.md
+- MONGODB_CHANGES_V62.md
+- TEST_REPORT_V62.md
+- PACKAGE_MANIFEST_V62.txt
+
+DATA SAFETY
+- V61 records without branch fields migrate to HQ automatically.
+- Historical records are preserved.
+- Disabling a branch is a soft delete.

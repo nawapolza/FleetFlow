@@ -1,57 +1,184 @@
-# testsystem v1 — Transport Ledger
+# Test System — Fuel & Transport Management
 
-React + Vite + Tailwind CSS frontend and Node.js + Express + MongoDB backend, separated for Render deployment.
+ระบบจัดการน้ำมัน รถ คนขับ สต๊อก พนักงาน และรายการย้อนหลัง ออกแบบใหม่ทั้งโครงสร้างหน้าจอ โดยยังใช้ API และความสามารถเดิมครบถ้วน
 
-## Installation (Windows)
+## Custom version ในชุดนี้
 
-Requirements: Node.js 22+, MongoDB Atlas or local MongoDB. In each folder separately:
+- เปลี่ยน Branding ทั้งระบบเป็น **Test System**
+- เอาโลโก้ออกจากหน้าหลัก หน้าเข้าสู่ระบบ หน้าใบเสร็จ และไฟล์ PNG ใบเสร็จ
+- ปรับ UI เป็น **Pastel Theme** โทนม่วง–ฟ้า ดูทันสมัยและมืออาชีพมากขึ้น
+- ปิดการใช้งานส่วน **คำนวณ GPS อัตโนมัติ** ที่หน้าฟอร์มบันทึก และเปลี่ยนเป็นกรอกระยะทางแบบ Manual
+- เปลี่ยนหน้า **ใบเสร็จ / ใบสรุปรายการ** เป็นดีไซน์ใหม่ทั้งหมด
+- ตั้งค่าฐานข้อมูล MongoDB ค่าเริ่มต้นใหม่เป็น `test_system_db`
 
-```powershell
-cd backend
-copy .env.example .env
-npm install
-npm start
+## การตั้งค่า MongoDB ใหม่
+
+แก้ไฟล์ `backend/.env` ตามตัวอย่างนี้
+
+```env
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_DB=test_system_db
 ```
 
-Edit backend/.env first: set MONGO_URI, JWT_SECRET (32+ random characters), CLIENT_ORIGIN=http://localhost:5173. In a second terminal:
+## V62 — Multi-Branch Professional Edition
 
-```powershell
+- เพิ่มเมนู **จัดการสาขา** สำหรับเพิ่ม แก้ไข เลือกใช้งาน ปิดใช้งาน และเปิดสาขาเดิมอีกครั้ง
+- แยกสต๊อกด้วยคีย์ `branch_id + item_type` ทำให้ดีเซล น้ำมันเครื่อง และแอดบลูของแต่ละสาขาไม่ปะปนกัน
+- แยกข้อมูลรายการน้ำมัน Dashboard รายงานบัญชี รถ/คนขับ พนักงาน แจ้งเตือน ประวัติสต๊อก และตรวจนับจริงตามสาขา
+- เจ้าของสลับสาขาจาก Sidebar หรือ Topbar ได้ครั้งเดียว ทุกหน้าจะโหลดข้อมูลสาขาเดียวกันอัตโนมัติ
+- พนักงานเห็นเฉพาะสาขาที่บัญชีสังกัด และแก้สาขาเองไม่ได้
+- เพิ่มป้ายขอบเขตสาขาในทุกหน้าสำคัญและในฟอร์มบันทึก เพื่อลดการลงข้อมูลผิดสาขา
+- เพิ่ม CRUD สาขาฝั่ง API และ Header `X-Branch-Id` ฝั่ง Frontend
+- ย้ายข้อมูล V61 เดิมเข้าสาขา **สำนักงานใหญ่ (HQ)** อัตโนมัติโดยไม่ลบประวัติเดิม
+- ปรับหน้าคลังให้แยกส่วน ภาพรวม เติมเข้าคลัง ตรวจนับ ตั้งค่าถัง ปรับยอด และประวัติอย่างชัดเจน
+- แก้การเชื่อมรถแบบ “ใช้ทั่วไป” ให้พนักงานในสาขาเลือกใช้ได้ และแยกร่างฟอร์มตามสาขา
+- เวอร์ชันระบบ: **62.0.0**
+
+รายละเอียดรุ่น: `RELEASE_NOTES_V62.md`  
+การเปลี่ยน MongoDB: `MONGODB_CHANGES_V62.md`  
+ผลตรวจ: `TEST_REPORT_V62.md`  
+รายการไฟล์: `PACKAGE_MANIFEST_V62.txt`
+
+## V60 — ระบบคำนวณ สต๊อก Realtime และรายงานบัญชีในเว็บเดียว
+
+- ไม่มีหน้าแนะนำบริษัท
+- เพิ่มหน้า **คำนวณน้ำมันและค่าใช้จ่าย** ใช้ได้ทั้งเจ้าของและพนักงาน
+- บันทึก **ลิตรเติมจริง** แยกจาก **ลิตรมาตรฐาน** พร้อมส่วนต่างลิตร/บาท ประสิทธิภาพ และต้นทุนต่อกิโลเมตร
+- แยกหน้าสต๊อกตามสิทธิ์: เจ้าของจัดการได้ทั้งหมด ส่วนพนักงานดูสถานะอย่างเดียว
+- เพิ่มตรวจนับสต๊อกจริงและบันทึกผลขาด/เกินใน Collection `stock_audits`
+- เพิ่มรายงานรายเดือนสำหรับบัญชี พร้อมพิมพ์/PDF และ CSV
+- Dashboard แสดงน้ำมันจริง มาตรฐาน ใช้เกินมาตรฐาน ต้นทุน และระดับสต๊อกตามความจุถัง
+- MongoDB เดิมใช้ต่อได้ ระบบเติม Index/ฟิลด์ที่ขาดให้อัตโนมัติแบบไม่ลบข้อมูลเก่า
+- เวอร์ชันระบบ: **60.0.0**
+
+รายละเอียดฐานข้อมูล: `MONGODB_CHANGES_V60.md`  
+รายละเอียดรุ่น: `RELEASE_NOTES_V60.md`
+
+## จุดเด่นของชุดนี้
+
+- ใช้ Route Rail บนคอมพิวเตอร์ และ Bottom Navigation บนมือถือ
+- ธีมน้ำเงิน–ขาวแบบมืออาชีพ พร้อมโลโก้บริษัทจริงในทุกจุดสำคัญ
+- ฟอร์มบันทึกงานจัดกลุ่มเป็นขั้นตอน พร้อมสรุปตัวเลขอัตโนมัติ
+- รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์
+- ระบบสิทธิ์ Owner / Employee, Realtime, รูปแนบ, ใบสรุป PNG และสต๊อกยังอยู่ครบ
+- Backend เดิมใช้ MongoDB และ API ชุดเดิม เพื่อไม่กระทบข้อมูลเดิม
+
+## เริ่มใช้งาน
+
+```bash
+npm run install:all
+npm run dev:backend
+npm run dev:frontend
+```
+
+ตั้งค่าไฟล์ `.env` ตามตัวอย่างใน `backend/.env.example` และ `frontend/.env.example`
+
+บน Windows สามารถใช้ `INSTALL_WINDOWS.bat` เพื่อติดตั้ง และ `START_LOCAL_WINDOWS.bat` เพื่อเปิด Backend/Frontend สองหน้าต่างได้
+
+## Build Frontend
+
+```bash
 cd frontend
-copy .env.example .env
-npm install
-npm run dev
+npm ci --include=dev --no-audit --no-fund
+npm run build
 ```
 
-Frontend: http://localhost:5173 ; backend: http://localhost:4000/api/health. The initial setup screen registers an admin username (3–40 characters, a-z 0-9 _ . -), email and password (12+ characters). Subsequent login accepts username/password. Existing FleetFlow accounts can log in with their **email in the username box**, then an admin can set a username under Users > Edit. Do not delete the existing MongoDB data or run setup again for an existing database.
+## Render
 
-## Render — two separate services
+- Frontend Root Directory: `frontend`
+- Build Command: `npm ci --include=dev --no-audit --no-fund && node ./node_modules/vite/bin/vite.js build`
+- Publish Directory: `dist`
+- Backend Root Directory: `backend`
+- Start Command: `npm start`
 
-Push the parent directory (containing frontend/ and backend/) to GitHub. Backend: Web Service, root directory `backend`, build `npm install`, start `npm start`. Backend environment: MONGO_URI, JWT_SECRET (32+ random characters), CLIENT_ORIGIN=https://YOUR-FRONTEND.onrender.com, NODE_ENV=production. Frontend: Static Site, root directory `frontend`, build `npm install && npm run build`, publish `dist`, environment VITE_API_URL=https://YOUR-BACKEND.onrender.com. Add a rewrite `/*` to `/index.html` for frontend client routes if needed. Never commit `.env` files, database credentials, or JWT_SECRET.
+## V59 — Mobile Professional UX
 
-## Functionality
+- ปรับฟอร์มบันทึกงานเป็น Mobile-first พร้อมทางลัดแตะไปแต่ละขั้นตอน
+- เลือกทะเบียนครั้งเดียว ระบบแสดงสถานะการเชื่อม คนขับ เบอร์รถ และอัตราน้ำมันอย่างชัดเจน
+- งานหลายงานยุบ–ขยายได้ ลดการเลื่อนหน้าจอยาว และแสดงระยะทาง/รายได้ในหัวการ์ด
+- เพิ่มงานถัดไปแล้วนำปลายทางงานก่อนมาเป็นต้นทางงานใหม่ พร้อมเชื่อมวันที่และผู้จ่าย
+- เพิ่มปุ่ม “เชื่อมงานก่อน” และ “ใช้วันที่รายการ” ลดการกรอกข้อมูลซ้ำ
+- เมื่อข้อมูลไม่ครบ ระบบเปิดงานหรือเลื่อนไปยังส่วนที่ต้องแก้โดยอัตโนมัติ
+- แถบสรุปงาน ระยะทาง และน้ำมันติดด้านล่างบนมือถือ พร้อมปุ่มบันทึกที่กดง่าย
+- หน้ารายการย้อนหลังแยกค้นหาหลักออกจากตัวกรองวันที่ ทำให้หน้ามือถือโล่งขึ้น
+- หน้าสต๊อกเชื่อมจำนวนลิตรกับยอดเงินเพื่อแสดงราคาเฉลี่ย และประวัติเป็นการ์ดอ่านง่ายบนมือถือ
+- หน้ารถเชื่อมพนักงานกับชื่อคนขับ และแสดงสถานะว่าข้อมูลพร้อมส่งไปหน้าบันทึกงาน
+- รองรับข้อมูลเดิม API เดิม MongoDB เดิม และร่าง V58 เดิมโดยไม่ต้องย้ายฐานข้อมูล
+- เวอร์ชันระบบ: 59.0.0
 
-Dashboard per month and vehicle; vehicle CRUD (deletion blocked when linked to jobs or expenses); transport job CRUD; expense CRUD; per-vehicle/month revenue, received payments, outstanding, cost, cash flow and profit; CSV exports. Admin manages user creation, edits (including optional password reset), deletion (cannot delete own account / last admin). Staff cannot delete data. Existing records are read from MongoDB; no fictitious business records are loaded.
+## V58 — รถ 1 คันรองรับหลายงาน
 
-## Important notes
+- รายการน้ำมันหนึ่งรายการเพิ่มงานย่อยได้หลายงาน พร้อมปุ่มเพิ่ม คัดลอก และลบงาน
+- แต่ละงานแยกต้นทาง ปลายทาง วันที่ ระยะทาง น้ำหนัก ค่าเที่ยว เบี้ยเลี้ยง รายได้อื่น ผู้จ่าย และสถานะจ่าย
+- ระบบรวมระยะทางทุกงานเพื่อคำนวณจำนวนลิตรตามอัตราประจำรถ และรวมรายได้/น้ำหนักให้อัตโนมัติ
+- ใบสรุปบนเว็บ Popup และ PNG แสดงรายละเอียดหลายงานครบถ้วน
+- Dashboard นับงานย่อยและแยกปลายทางโดยไม่บวกปริมาณน้ำมันซ้ำ
+- รองรับข้อมูลเดิมแบบงานเดียวโดยไม่ต้องย้ายฐานข้อมูล MongoDB
+- เวอร์ชันระบบ: 58.0.0
 
-The UI has responsive card layouts for mobile and a wide table layout on desktop; form controls avoid mobile viewport clipping. Username is lowercase and case-insensitive. Upgrading an existing FleetFlow database does not automatically create usernames for old accounts: login with email first and add each username in the user editor. Duplicate usernames/emails are rejected by MongoDB indexes. Back up your database before deploying a new version. If Render MongoDB connection fails, configure Atlas Network Access to include Render's outbound IP ranges and verify the connection string and user permissions; do not disable TLS verification.
+## V52 — สรุปปิดงาน น้ำหนักสินค้า และรายได้
 
-## Verification
+- เพิ่มส่วนกรอก **ประเภทสินค้า / ชื่องาน, จุดรับสินค้า, จุดลงงาน, น้ำหนักต้นทาง และน้ำหนักปลายทาง**
+- เพิ่มช่อง **ค่าเที่ยว, เบี้ยเลี้ยง, รายได้อื่น และรวมรายได้อัตโนมัติ**
+- เมื่อกดบันทึก ระบบเปิด Popup **สรุปปิดงาน** อัตโนมัติ จัดหน้าคล้ายตัวอย่างที่ให้มา
+- Popup แสดงน้ำหนักสินค้า รายได้ รายละเอียดน้ำมัน และรูปแนบในหน้าเดียว
+- ปุ่มบันทึก PNG สร้างรูปสรุปปิดงานแบบยาว พร้อมส่งเจ้าของกิจการ
+- Backend บันทึกฟิลด์ใหม่ครบถ้วน โดยไม่ต้องย้ายฐานข้อมูล MongoDB เดิม
+- แก้ลำดับการปิดหน้าแก้ไข ให้ Popup แสดงก่อน แล้วจึงรีโหลดรายการหลังปิดสรุป
+- เวอร์ชันระบบ: 52.0.0
 
-Backend syntax check and 4 accounting unit tests passed in the packaging environment. Frontend production build and live Render/MongoDB integration were **not** verified in this environment; run `npm run build` in frontend and test in your own staging deployment before replacing the live service.
+## V51 — กรอกระยะทาง คำนวณเรทน้ำมันอัตโนมัติ
 
-## v1.1 — manually recorded kilometers and monthly fuel rate
+- พนักงานเลือกทะเบียนรถและกรอก **ระยะทางที่ต้องวิ่ง**
+- ระบบดึงอัตราประจำรถอัตโนมัติ แล้วคำนวณ `ระยะทาง ÷ อัตราประจำรถ = จำนวนลิตรตามเรท`
+- ตัวอย่าง `669 กม. ÷ 3.00 กม./ลิตร = 223.00 ลิตร`
+- กรอกราคาน้ำมันต่อลิตรแล้วระบบคำนวณยอดเงินตามเรททันที
+- Backend คำนวณซ้ำก่อนบันทึก เพื่อให้จำนวนลิตร ยอดเงิน และการตัดสต๊อกตรงกัน
+- ใบสรุปบนเว็บและไฟล์ PNG เปลี่ยนเป็นคำว่า ระยะทางที่กรอก / จำนวนลิตรตามเรท
+- เวอร์ชันระบบ: 51.0.0
 
-- Transport Jobs: enter **distanceKm** (the total distance in km for that job, entered manually; leave blank for unknown). Existing job records remain in the database and have no made-up distance.
-- Fuel Expenses: for the `fuel` category, enter **fuelLiters** (liters purchased); other expense categories do not count as fuel.
-- Monthly reports: select a month and optional vehicle. Each plate shows summed manually entered kilometers, purchased liters, km/liter, fuel cost and baht/km; the top cards show the selected fleet/month totals. Job and expense CSV exports include new fields; the per-vehicle/month CSV includes fuel and distance statistics.
-- **Definition**: monthly km/l = sum of job distances in the month / liters purchased in the month, not an exact fuel-consumption measurement. Fuel purchased in one month may be used in another. Ratio is displayed only if every job in the selected period has a recorded distance, every fuel expense has a recorded liter quantity, there is at least one job and fuel expense, and denominator is greater than zero. Otherwise the ratio is shown as unavailable. Historical missing inputs are not estimated.
-- Editing or deleting a job or fuel expense recalculates the report from the persisted MongoDB records. The data store retains the existing models and adds optional fields; no destructive migration is required. Make a database backup before updating a deployed service.
+## V50 — HENG BLUE OPERATIONS UI
 
-### Updating the existing Render deployment
+- ปรับ UX/UI ใหม่ทุกหน้าตามแนวระบบบริหารน้ำมันสีน้ำเงิน–ขาว
+- Dashboard ใหม่: Summary Cards, Line Chart, Donut Chart, Stock Status และ Recent Table
+- Sidebar / Topbar / Mobile Bottom Navigation ใหม่ ใช้งานง่ายขึ้น
+- Login มืออาชีพและรองรับสิทธิ์ Owner/Admin กับ Employee/User
+- คงฟังก์ชันเดิมทั้งหมด รวมระบบคำนวณระยะทาง รูปแนบ PNG Realtime และ MongoDB
+- เวอร์ชันระบบ: 50.0.0
 
-Unzip and copy **frontend/** and **backend/** from this version into the *existing cloned GitHub repository* (preserve its `.git/` folder). Verify `.env` files have not been added, then run `git add frontend backend README.md`, `git commit -m "Add monthly distance and fuel rate"`, `git push origin main`. Backend Render Web Service: root `backend`, build `npm install`, start `npm start`. Frontend Static Site: root `frontend`, build `npm install && npm run build`, publish `dist`. Keep `MONGO_URI`, `JWT_SECRET`, `CLIENT_ORIGIN`, and `VITE_API_URL` in service Environment Variables. If database access is still blocked by Atlas Network Access or TLS, the new version alone will not fix that connection problem.
+## V49 — อัตราประจำรถอัตโนมัติ + ธีมน้ำเงินขาว
 
-### Verification of v1.1
+- พนักงานไม่ต้องกรอกอัตราวิ่งในทุกเที่ยว
+- เจ้าของระบบตั้ง **อัตราประจำรถ** แยกตามรถแต่ละคันที่เมนู `รถและคนขับ` เพียงครั้งเดียว
+- เลือกทะเบียนรถแล้วระบบดึงค่าอัตโนมัติ เช่น รถหนัก 2.90 กม./ลิตร หรือรถคันอื่น 3.20 กม./ลิตร
+- คำนวณ `จำนวนลิตร × อัตราประจำรถ = ระยะทางที่ควรวิ่งได้` ทันที
+- ตัวอย่าง `208 ลิตร × 2.90 กม./ลิตร = 603.20 กม.`
+- Backend ใช้ค่าจากทะเบียนรถเป็นหลัก และไม่เปลี่ยนอัตราประจำรถจากข้อมูลรายเที่ยว
+- เวอร์ชันระบบ: 49.0.0
 
-Backend syntax and seven logic tests verified in the packaging environment. Frontend JSX parsed without syntax diagnostics using TypeScript's parser; **full Vite production build, live MongoDB, Render and phone-browser testing are not verified here** because npm dependencies were unavailable in the packaging environment. Run `npm run build` in `frontend` and test on a staging service before replacing your production deployment.
+## V48 — คำนวณระยะทางจากจำนวนลิตร
+
+- เพิ่มอัตราประจำรถ หน่วย กม./ลิตร
+- เลือกทะเบียนรถแล้วระบบดึงอัตราประจำรถให้อัตโนมัติ
+- ระยะทางจริงกรอกภายหลังได้ เพื่อเปรียบเทียบกับค่าประมาณและคำนวณผลจริง
+- เวอร์ชันระบบ: 48.0.0
+
+## V47 — HENG CONTROL DECK
+
+- ออกแบบ UX/UI ใหม่ทั้งระบบแบบ Control Deck
+- เพิ่ม Popup บันทึกสำเร็จแบบ Motion UI
+- เพิ่ม Desktop Route Rail และ Mobile Floating Dock
+- ปรับ Responsive และ Touch UX ทุกหน้าหลัก
+- เวอร์ชัน Frontend: 47.0.0
+
+## โมดูลบัญชีงานขนส่ง (Transport Ledger)
+
+เมนู **บัญชีงานขนส่ง** (บัญชี Owner เท่านั้น) แยกรายรับค่าขนส่งพร้อมชื่อวัสดุ/ปริมาณที่ขน และรายจ่าย น้ำมัน อะไหล่ ค่าแรงช่างซ่อม ค่ายาง ค่าทางด่วน ค่าแรงคนขับ ค่าใช้จ่ายอื่น ใช้วันและทะเบียนรถเพื่อสรุปต่อคัน/ต่อเดือน เลือกเดือน/รถ ดูรายการย้อนหลัง เพิ่ม แก้ไข ลบ และส่งออก CSV ได้
+
+**วิธีคิด:** รายรับรวม − รายจ่ายรวม = คงเหลือ/กำไร(ขาดทุน) ของเดือนที่เลือก ยอดนี้เป็น *กำไรจากรายการที่บันทึก* ไม่ใช่กำไรทางบัญชีสุทธิ หากยังไม่ได้กรอกค่าใช้จ่ายครบ เช่น ภาษี ค่าเสื่อมราคา เงินเดือน หรือค่างวดรถ จะยังไม่แสดงต้นทุนทั้งหมด
+
+**ป้องกันยอดซ้ำ:** โมดูลนี้ใช้ Collection `transport_ledger` และไม่ดึงค่าน้ำมันหรือค่าเที่ยวจากโมดูลบันทึกน้ำมันอัตโนมัติ รายรับและรายจ่ายทั้งหมดต้องบันทึกด้วยตนเอง หากกรอกยอดเติมน้ำมันที่เมนูเดิมไว้แล้วและต้องการให้นับในกำไร/ขาดทุน ให้เพิ่มรายจ่ายน้ำมันที่บัญชีงานขนส่งเพียงครั้งเดียว
+
+**ฐานข้อมูล:** เมื่อเชื่อม MongoDB ครั้งแรก Backend จะสร้าง Index ของ Collection `transport_ledger` ให้อัตโนมัติ ไม่แตะประวัติเดิม สร้าง `.env` ใน `backend` จาก `.env.example` แล้วตั้ง `MONGODB_URI`, `MONGODB_DB=test_system_db`, `JWT_SECRET` ที่เป็นความลับใหม่ ก่อนเริ่มระบบ กรุณาเพิ่มทะเบียนรถในเมนูรถและคนขับก่อนทำรายการ
+
+**ทดสอบโปรแกรม:** รัน `npm run install:all` จากโฟลเดอร์หลัก (ต้องมีอินเทอร์เน็ตเพื่อดาวน์โหลดแพ็กเกจ) แล้ว `npm run dev:backend` กับ `npm run dev:frontend` ในเทอร์มินัลแยกกัน หลังจากตั้งค่า MongoDB และสร้างบัญชี Owner ตามคู่มือเดิม
