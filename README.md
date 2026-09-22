@@ -39,3 +39,19 @@ The UI has responsive card layouts for mobile and a wide table layout on desktop
 ## Verification
 
 Backend syntax check and 4 accounting unit tests passed in the packaging environment. Frontend production build and live Render/MongoDB integration were **not** verified in this environment; run `npm run build` in frontend and test in your own staging deployment before replacing the live service.
+
+## v1.1 — manually recorded kilometers and monthly fuel rate
+
+- Transport Jobs: enter **distanceKm** (the total distance in km for that job, entered manually; leave blank for unknown). Existing job records remain in the database and have no made-up distance.
+- Fuel Expenses: for the `fuel` category, enter **fuelLiters** (liters purchased); other expense categories do not count as fuel.
+- Monthly reports: select a month and optional vehicle. Each plate shows summed manually entered kilometers, purchased liters, km/liter, fuel cost and baht/km; the top cards show the selected fleet/month totals. Job and expense CSV exports include new fields; the per-vehicle/month CSV includes fuel and distance statistics.
+- **Definition**: monthly km/l = sum of job distances in the month / liters purchased in the month, not an exact fuel-consumption measurement. Fuel purchased in one month may be used in another. Ratio is displayed only if every job in the selected period has a recorded distance, every fuel expense has a recorded liter quantity, there is at least one job and fuel expense, and denominator is greater than zero. Otherwise the ratio is shown as unavailable. Historical missing inputs are not estimated.
+- Editing or deleting a job or fuel expense recalculates the report from the persisted MongoDB records. The data store retains the existing models and adds optional fields; no destructive migration is required. Make a database backup before updating a deployed service.
+
+### Updating the existing Render deployment
+
+Unzip and copy **frontend/** and **backend/** from this version into the *existing cloned GitHub repository* (preserve its `.git/` folder). Verify `.env` files have not been added, then run `git add frontend backend README.md`, `git commit -m "Add monthly distance and fuel rate"`, `git push origin main`. Backend Render Web Service: root `backend`, build `npm install`, start `npm start`. Frontend Static Site: root `frontend`, build `npm install && npm run build`, publish `dist`. Keep `MONGO_URI`, `JWT_SECRET`, `CLIENT_ORIGIN`, and `VITE_API_URL` in service Environment Variables. If database access is still blocked by Atlas Network Access or TLS, the new version alone will not fix that connection problem.
+
+### Verification of v1.1
+
+Backend syntax and seven logic tests verified in the packaging environment. Frontend JSX parsed without syntax diagnostics using TypeScript's parser; **full Vite production build, live MongoDB, Render and phone-browser testing are not verified here** because npm dependencies were unavailable in the packaging environment. Run `npm run build` in `frontend` and test on a staging service before replacing your production deployment.
