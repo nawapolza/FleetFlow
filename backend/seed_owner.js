@@ -11,8 +11,9 @@ async function main() {
   const db = client.db(config.mongodb.db);
 
   const now = new Date().toISOString();
-  const ownerPassword = process.env.OWNER_PASSWORD || 'password123';
-  const employeePassword = process.env.EMPLOYEE_PASSWORD || 'password123';
+  const ownerPassword = process.env.OWNER_PASSWORD;
+  const employeePassword = process.env.EMPLOYEE_PASSWORD;
+  if (!ownerPassword || !employeePassword || ownerPassword.length < 12 || employeePassword.length < 12) throw new Error('Set OWNER_PASSWORD and EMPLOYEE_PASSWORD (12+ chars) before seeding');
 
   const users = [
     { username: 'owner', name: 'เจ้าของกิจการ', role: 'owner', password: ownerPassword },

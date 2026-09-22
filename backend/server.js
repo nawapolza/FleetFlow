@@ -383,6 +383,7 @@ function signUserToken(user) {
       user_id: id,
       role: user.role || 'employee',
       username: user.username || '',
+      auth_version: Number(user.auth_version || 0),
     },
     config.jwtSecret,
     { expiresIn: Number(config.jwtExpireSeconds || 60 * 60 * 24 * 7) },
@@ -516,6 +517,7 @@ async function currentUser(req) {
       { projection: { password_hash: 0, password: 0 } },
     );
   }
+  if (user && Number(payload.auth_version || 0) !== Number(user.auth_version || 0)) return null;
   return publicUser(user);
 }
 
@@ -1545,7 +1547,7 @@ const router = express.Router();
 
 router.get('/', (_req, res) => jsonResponse(res, {
   success: true,
-  name: 'Heng Charoen Phuetphon Fuel Management API',
+  name: 'Test System API',
   build: 'test-system-v1-pastel',
   item_types: ITEM_TYPES,
   endpoints: ['/health', '/auth/login', '/auth/me', '/branches', '/deliveries', '/dashboard/stats', '/stocks/status', '/stocks', '/reports/monthly', '/notifications', '/users', '/vehicles'],
@@ -1567,6 +1569,70 @@ router.post('/auth/login', loginRateLimit, asyncHandler(async (req, res) => {
   const publicData = publicUser(user);
   const token = signUserToken(publicData);
   jsonResponse(res, { success: true, token, user: publicData });
+}));
+
+
+// Admin setup/recovery: the URL alone grants no privileges. A server-side secret is required.
+const adminRecoveryAttempts = new Map();
+function limitAdminRecovery(req, res, next) {
+  const key = String(req.ip || req.socket?.remoteAddress || 'unknown');
+  const now = Date.now();
+  const attempt = adminRecoveryAttempts.get(key) || { count: 0, resetAt: now + 15 * 60 * 1000 };
+  if (now > attempt.resetAt) { attempt.count = 0; attempt.resetAt = now + 15 * 60 * 1000; }
+  if (++attempt.count > 8) return jsonResponse(res, { success: false, message: 'ลองใหม่ภายหลัง' }, 429);
+  adminRecoveryAttempts.set(key, attempt);
+  next();
+}
+function adminSecretValid(provided) {
+  const configured = String(process.env.ADMIN_RECOVERY_KEY || '');
+  const supplied = typeof provided === 'string' ? provided : '';
+  if (configured.length < 32 || supplied.length !== configured.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(configured));
+}
+router.post('/auth/admin-recovery', limitAdminRecovery, asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!adminSecretValid(req.body.recovery_key)) {
+    return jsonResponse(res, { success: false, message: 'รหัสกู้คืนไม่ถูกต้อง หรือยังไม่ได้ตั้งค่าในเซิร์ฟเวอร์' }, 403);
+  }
+  const username = cleanString(req.body.username);
+  const password = req.body.password;
+  const currentUsername = cleanString(req.body.current_username);
+  if (!/^[a-zA-Z0-9_.-]{3,40}$/.test(username) || typeof password !== 'string' || password.length < 12 || password.length > 128 || password.trim() !== password) {
+    return jsonResponse(res, { success: false, message: 'Username ต้องมี 3–40 ตัว (ภาษาอังกฤษ ตัวเลข _ . -) และ Password ต้องยาว 12–128 ตัว' }, 422);
+  }
+  const users = req.db.collection('users');
+  const hash = await bcrypt.hash(password, 12);
+  const now = nowIso();
+  const existingOwnerCount = await users.countDocuments({ role: 'owner', is_active: { $ne: 0 } });
+  const duplicate = await users.findOne({ username });
+  if (existingOwnerCount === 0) {
+    if (duplicate) return jsonResponse(res, { success: false, message: 'Username นี้ถูกใช้แล้ว' }, 409);
+    const branch = await ensureDefaultBranch(req.db);
+    // Unique MongoDB _id is the atomic one-time bootstrap lock.
+    try {
+      await req.db.collection('system_settings').insertOne({ _id: 'admin_initial_setup', completed: true, created_at: now });
+    } catch (err) {
+      if (err.code === 11000) return jsonResponse(res, { success: false, message: 'ตั้งค่าผู้ดูแลครั้งแรกไปแล้ว' }, 409);
+      throw err;
+    }
+    await users.insertOne({
+      ...branchFields(branch), name: username, username, password_hash: hash,
+      role: 'owner', auth_version: 1, phone: '', is_active: 1, created_at: now, updated_at: now,
+    });
+    return jsonResponse(res, { success: true, message: 'สร้างผู้ดูแลแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีใหม่' });
+  }
+  if (!currentUsername) return jsonResponse(res, { success: false, message: 'กรอก Username ของแอดมินเดิมเพื่อรีเซ็ตบัญชี' }, 422);
+  const owner = await users.findOne({ username: currentUsername, role: 'owner', is_active: { $ne: 0 } });
+  if (!owner) return jsonResponse(res, { success: false, message: 'ไม่พบบัญชีแอดมินเดิมที่ระบุ' }, 404);
+  if (duplicate && String(duplicate._id) !== String(owner._id)) {
+    return jsonResponse(res, { success: false, message: 'Username ใหม่ถูกใช้แล้ว' }, 409);
+  }
+  await users.updateOne({ _id: owner._id, role: 'owner' }, {
+    $set: { username, name: username, password_hash: hash, updated_at: now, is_active: 1 },
+    $unset: { password: '' },
+    $inc: { auth_version: 1 },
+  });
+  return jsonResponse(res, { success: true, message: 'เปลี่ยน Username และ Password ของแอดมินแล้ว กรุณาเข้าสู่ระบบใหม่' });
 }));
 
 router.get('/auth/me', requireAuth, (req, res) => jsonResponse(res, { success: true, user: req.user }));

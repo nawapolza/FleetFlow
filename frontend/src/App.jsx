@@ -9,6 +9,7 @@ import FuelCalculatorPage from './pages/FuelCalculatorPage.jsx';
 import DeliveriesPage from './pages/DeliveriesPage.jsx';
 import EmployeeQuickPage from './pages/EmployeeQuickPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
+import AdminRecoveryPage from './pages/AdminRecoveryPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import MonthlyReportsPage from './pages/MonthlyReportsPage.jsx';
 import StockPage from './pages/StockPage.jsx';
@@ -28,6 +29,7 @@ export default function App() {
 
 function AuthGate() {
   const { user, loading } = useAuth();
+  if (window.location.pathname.replace(/\/+$/, '') === '/adminnakub') return <AdminRecoveryPage />;
   if (loading) return <Loading />;
   if (!user) return <LoginPage />;
   return (

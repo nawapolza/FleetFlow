@@ -98,6 +98,7 @@ function query(params = {}) {
 }
 
 export const api = {
+  adminRecovery: (body) => apiRequest('/auth/admin-recovery', { method: 'POST', body }),
   login: (username, password) => apiRequest('/auth/login', { method: 'POST', body: { username, password } }),
   me: () => apiRequest('/auth/me'),
   branches: () => apiRequest('/branches'),
