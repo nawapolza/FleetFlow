@@ -2,7 +2,6 @@ import { ArrowDownRight, Banknote, Building2, CalendarDays, Camera, CheckCircle2
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, uploadUrl } from '../api.js';
 import CaptureReceiptModal from './CaptureReceiptModal.jsx';
-import RouteDistancePlanner from './RouteDistancePlanner.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { useBranch } from '../contexts/BranchContext.jsx';
 import BrandMark from './BrandMark.jsx';
@@ -84,12 +83,6 @@ const blank = {
   payment_status: 'pending',
   jobs: [blankJob()],
   note: '',
-  gps_origin_lat: '',
-  gps_origin_lon: '',
-  gps_destination_lat: '',
-  gps_destination_lon: '',
-  gps_route_provider: '',
-  gps_calculated_at: '',
 };
 
 const emptyBillFields = {
@@ -562,37 +555,6 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
     }));
   }
 
-  function applyGpsRoute(routeData) {
-    const distance = roundMoneyLike(decimalNumber(routeData?.distance_km, 0), 2);
-    if (!distance) return;
-    const rate = decimalNumber(form.expected_fuel_efficiency_km_per_liter, 0);
-    const autoLiters = rate > 0 ? roundMoneyLike(distance / rate, 2) : 0;
-    const autoCost = autoLiters > 0 ? roundMoneyLike(autoLiters * decimalNumber(form.price_baht_per_liter, 0), 2) : 0;
-    setForm((old) => {
-      const currentJobs = old.jobs?.length ? old.jobs : [blankJob()];
-      const jobs = currentJobs.map((job, index) => index === 0 ? {
-        ...job,
-        origin_place: routeData.origin?.name || job.origin_place,
-        destination_place: routeData.destination?.name || job.destination_place,
-        distance_km: String(distance),
-      } : job);
-      return {
-        ...old,
-        distance_km: String(distance),
-        jobs,
-        gps_origin_lat: String(routeData.origin?.lat ?? ''),
-        gps_origin_lon: String(routeData.origin?.lon ?? ''),
-        gps_destination_lat: String(routeData.destination?.lat ?? ''),
-        gps_destination_lon: String(routeData.destination?.lon ?? ''),
-        gps_route_provider: routeData.provider || '',
-        gps_calculated_at: routeData.calculated_at || '',
-      };
-    });
-    setExpandedJobIds((ids) => [...new Set([...ids, form.jobs?.[0]?.id].filter(Boolean))]);
-    toastSuccess(autoLiters > 0
-      ? `GPS ${number(distance, 2)} กม. · น้ำมัน ${number(autoLiters, 2)} ลิตร${autoCost > 0 ? ` · ${money(autoCost)}` : ''}`
-      : `GPS ยืนยัน ${number(distance, 2)} กม. — เลือกรถเพื่อคำนวณลิตรอัตโนมัติ`);
-  }
 
   function addJob() {
     const jobs = form.jobs || [];
@@ -881,8 +843,8 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                 <div className="flex items-start gap-3">
                   <ShieldCheck size={18} className="mt-0.5 text-violet-700" />
                   <div>
-                    <p className="font-black">โหมดกรอกระยะทางแบบ Manual</p>
-                    <p className="mt-1 text-xs font-semibold leading-6 text-violet-800/80">ระบบนี้ปิดส่วนคำนวณ GPS อัตโนมัติแล้ว กรุณากรอกระยะทางรวม หรือกรอกระยะทางแยกในแต่ละงานแทน</p>
+                    <p className="font-black">บันทึกระยะทางจริง • ไม่ใช้ GPS</p>
+                    <p className="mt-1 text-xs font-semibold leading-6 text-violet-800/80">กรอกระยะทางจริงเอง ระบบรวมทุกงานและคำนวณลิตรมาตรฐานให้อัตโนมัติ</p>
                   </div>
                 </div>
               </div>

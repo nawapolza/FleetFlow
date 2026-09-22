@@ -308,169 +308,77 @@ function photoCount(row = {}) {
 }
 
 export async function createReceiptImageBlob(row = {}) {
-  const canvas = document.createElement('canvas');
-  canvas.width = 1080;
-  canvas.height = 1920;
-  const ctx = canvas.getContext('2d');
-
   const jobs = jobsFor(row);
-  const primaryJob = jobs[0] || {};
-  const origin = routePlace(primaryJob.origin_place || row.origin_place, 'ไม่ระบุจุดขึ้นงาน');
-  const destination = routePlace(primaryJob.destination_place || row.destination_place, 'ไม่ระบุจุดลงงาน');
   const tripFee = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'trip_fee_baht'), 0), 2) || incomeValue(row, 'trip_fee_baht');
   const allowance = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'allowance_baht'), 0), 2) || incomeValue(row, 'allowance_baht');
   const otherIncome = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'other_income_baht'), 0), 2) || incomeValue(row, 'other_income_baht');
-  const totalIncome = totalIncomeValue(row);
-  const liters = litersValue(row);
-  const standardLiters = standardLitersValue(row);
-  const varianceLiters = varianceLitersValue(row);
-  const price = priceValue(row);
-  const amount = amountValue(row);
+  const income = totalIncomeValue(row);
   const distance = parseDecimal(row.distance_km, 0);
-  const fuelRate = fuelRateValue(row);
-  const before = safeText(row.station_meter_before || row.odometer_before, '-');
-  const after = safeText(row.station_meter_after || row.odometer_after, '-');
-  const recorder = safeText(row.recorder_name || row.employee_name, '-');
-  const photos = photoCount(row);
-
-  const background = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  background.addColorStop(0, '#dbeafe');
-  background.addColorStop(0.5, '#f8fafc');
-  background.addColorStop(1, '#dcfce7');
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.fillStyle = '#ffffff';
-  roundedRect(ctx, 34, 34, 1012, 1852, 48);
-  ctx.fill();
-  ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  const headerGradient = ctx.createLinearGradient(34, 34, 1046, 330);
-  headerGradient.addColorStop(0, '#ffffff');
-  headerGradient.addColorStop(1, '#e0f2fe');
-  ctx.fillStyle = headerGradient;
-  roundedRect(ctx, 34, 34, 1012, 292, 48);
-  ctx.fill();
-
-  ctx.fillStyle = '#ffffff';
-  roundedRect(ctx, 76, 76, 126, 126, 28);
-  ctx.fill();
-  ctx.strokeStyle = '#ddd6fe';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  drawText(ctx, 'TS', 103, 115, 80, { size: 34, weight: 950, color: '#7c3aed', maxLines: 1 });
-  drawText(ctx, 'TEST SYSTEM', 230, 76, 430, { size: 24, weight: 950, color: '#7c3aed', maxLines: 1 });
-  drawText(ctx, 'ใบสรุปรายการ', 230, 112, 470, { size: 54, weight: 950, color: '#020617', maxLines: 1 });
-  drawText(ctx, `รวม ${jobs.length} งาน ระยะทาง รายได้ และข้อมูลน้ำมัน`, 230, 181, 620, { size: 22, weight: 800, color: '#64748b', maxLines: 1 });
-  drawPill(ctx, 828, 76, 160, 'บันทึกแล้ว', '#d1fae5', '#047857');
-
-  drawSingleLineFit(ctx, safeText(row.plate_no, '-'), 76, 232, 400, {
-    maxSize: 58,
-    minSize: 34,
-    weight: 950,
-    color: '#020617',
+  const rate = parseDecimal(row.expected_fuel_efficiency_km_per_liter || row.vehicle_fuel_efficiency_km_per_liter, 0);
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1210 + jobs.length * 224;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('อุปกรณ์ไม่รองรับการสร้างไฟล์รูปใบสรุปงาน');
+  const ink = '#292329', red = '#b91c1c', muted = '#807377', border = '#f0dada';
+  ctx.fillStyle = '#f8f8f9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#fff'; roundedRect(ctx, 26, 26, 1028, canvas.height - 52, 30); ctx.fill();
+  ctx.fillStyle = red; roundedRect(ctx, 26, 26, 1028, 14, 7); ctx.fill();
+  drawText(ctx, 'TEST SYSTEM / TRANSPORT OPERATIONS', 75, 85, 740, { size: 22, weight: 900, color: red, maxLines: 1 });
+  drawText(ctx, 'ใบสรุปงานขนส่ง', 75, 126, 780, { size: 53, weight: 950, color: ink, maxLines: 1 });
+  drawText(ctx, 'ระยะทางจากข้อมูลที่กรอกเอง • ไม่ใช้ GPS', 75, 198, 800, { size: 22, weight: 750, color: muted, maxLines: 1 });
+  ctx.fillStyle = '#fff1f2'; roundedRect(ctx, 76, 258, 930, 133, 22); ctx.fill();
+  drawText(ctx, 'ทะเบียนรถ', 101, 280, 230, { size: 19, color: '#a25861' });
+  drawText(ctx, safeText(row.plate_no), 101, 307, 400, { size: 37, weight: 950, color: red, maxLines: 1 });
+  drawText(ctx, `วันที่ ${fillDateText(row)}`, 540, 280, 440, { size: 21, color: ink, maxLines: 1 });
+  drawText(ctx, `คนขับ ${safeText(row.driver_name || row.driver_name_input)}`, 540, 321, 440, { size: 21, color: ink, maxLines: 1 });
+  let y = 430;
+  drawText(ctx, '01   รายการขนส่ง', 78, y, 600, { size: 31, weight: 950, color: red, maxLines: 1 });
+  y += 56;
+  jobs.forEach((job, index) => {
+    ctx.fillStyle = '#fff'; roundedRect(ctx, 76, y, 930, 198, 18); ctx.fill();
+    ctx.strokeStyle = border; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#fff1f2'; roundedRect(ctx, 90, y + 15, 902, 44, 11); ctx.fill();
+    drawText(ctx, `งาน ${index + 1} · ${safeText(job.cargo_name, 'ไม่ระบุวัสดุ')}`, 108, y + 22, 615, { size: 22, weight: 950, color: ink, maxLines: 1 });
+    drawText(ctx, `${number(job.distance_km, 2)} กม.`, 973, y + 22, 240, { size: 21, weight: 950, color: red, maxLines: 1, align: 'right' });
+    drawText(ctx, `ต้นทาง  ${safeText(job.origin_place)}`, 106, y + 72, 837, { size: 20, color: ink, maxLines: 1 });
+    drawText(ctx, `ปลายทาง ${safeText(job.destination_place)}`, 106, y + 105, 837, { size: 20, color: ink, maxLines: 1 });
+    drawText(ctx, `น้ำหนักขึ้น ${kgText(job.loading_weight_kg)}     น้ำหนักลง ${kgText(job.unloading_weight_kg)}`, 106, y + 145, 620, { size: 18, color: muted, maxLines: 1 });
+    drawText(ctx, money(jobIncomeValue(job)), 973, y + 144, 230, { size: 21, weight: 950, color: red, align: 'right', maxLines: 1 });
+    y += 224;
   });
-  drawPill(ctx, 460, 238, 128, safeText(row.item_type, '-'), '#eff6ff', '#1d4ed8');
-  drawPill(ctx, 602, 238, 242, safeText(row.operation_type, 'ทำน้ำมันบรรทุก'), '#ecfdf5', '#047857');
-  drawText(ctx, `คนขับ: ${safeText(row.driver_name || row.driver_name_input, '-')}`, 76, 292, 860, {
-    size: 22,
-    weight: 900,
-    color: '#475569',
-    maxLines: 1,
+  drawText(ctx, '02   น้ำมันและระยะทาง', 78, y + 8, 700, { size: 31, weight: 950, color: red });
+  y += 68;
+  ctx.fillStyle = '#fff7f7'; roundedRect(ctx, 76, y, 930, 150, 18); ctx.fill();
+  const cols = [
+    ['ระยะทางจริง', `${number(distance, 2)} กม.`],
+    ['อัตราประจำรถ', rate > 0 ? `${number(rate, 2)} กม./ลิตร` : '-'],
+    ['ลิตรเติมจริง', `${number(litersValue(row), 2)} ลิตร`],
+  ];
+  cols.forEach(([label, value], index) => {
+    const x = 98 + index * 306;
+    drawText(ctx, label, x, y + 27, 280, { size: 18, color: muted, maxLines: 1 });
+    drawText(ctx, value, x, y + 67, 285, { size: 25, weight: 950, color: red, maxLines: 1 });
   });
-
-  drawSection(ctx, 64, 350, 952, 302, '#ffffff', '#e2e8f0');
-  drawText(ctx, 'รายละเอียดงาน', 92, 374, 400, { size: 26, weight: 950, color: '#0f172a', maxLines: 1 });
-  ctx.strokeStyle = '#cbd5e1';
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.moveTo(122, 445);
-  ctx.lineTo(122, 614);
-  ctx.stroke();
-  const eventText = eventDateText(row);
-  const distanceMeta = distance > 0 ? `[ระยะทาง ${number(distance, 0)} กม.]` : '';
-  const unloadMeta = parseDecimal(row.unloading_weight_kg, 0) > 0 ? `[ปลายทาง ${kgText(row.unloading_weight_kg)}]` : '';
-  drawTimelineRow(ctx, 122, 420, 830, 3, `พร้อมลงสินค้า (${destination})`, `${eventText} ${distanceMeta}`.trim());
-  drawTimelineRow(ctx, 122, 500, 830, 4, `ลงสินค้าเรียบร้อย (${destination})`, `${eventText} ${unloadMeta}`.trim());
-  drawTimelineRow(ctx, 122, 580, 830, 5, 'สรุปปิดงาน', '', true);
-
-  drawSection(ctx, 64, 676, 952, 470, '#eaf4ff', '#bfdbfe');
-  drawText(ctx, `สรุปงานทั้งหมด (${jobs.length} งาน)`, 92, 700, 520, { size: 27, weight: 950, color: '#0f172a', maxLines: 1 });
-  drawText(ctx, `ระยะทางรวม ${number(distance, 2)} กม. · ค่าเที่ยวรวม ${number(tripFee, 2)} บาท · เบี้ยเลี้ยงรวม ${number(allowance, 2)} บาท`, 92, 738, 850, {
-    size: 18,
-    weight: 800,
-    color: '#64748b',
-    maxLines: 1,
+  y += 170;
+  drawText(ctx, '03   สรุปรายได้และค่าใช้จ่าย', 78, y, 800, { size: 31, weight: 950, color: red, maxLines: 1 });
+  y += 53;
+  const rows = [
+    ['ค่าเที่ยว', money(tripFee)], ['เบี้ยเลี้ยง', money(allowance)],
+    ['รายได้อื่น', money(otherIncome)], ['ค่าน้ำมันเติมจริง', money(amountValue(row))],
+  ];
+  rows.forEach(([label, value]) => {
+    drawText(ctx, label, 94, y, 410, { size: 21, color: muted, maxLines: 1 });
+    drawText(ctx, value, 970, y, 360, { size: 23, weight: 950, color: ink, align: 'right', maxLines: 1 });
+    y += 43;
   });
-
-  const visibleJobs = jobs.slice(0, 4);
-  let jobY = 782;
-  visibleJobs.forEach((job, index) => {
-    const jobLabel = `งาน ${index + 1} ${safeText(job.cargo_name, '')}: ${routePlace(job.origin_place, 'ขึ้นงาน')} → ${routePlace(job.destination_place, 'ลงงาน')}`;
-    const jobValue = `${number(job.distance_km, 2)} กม. / ${number(jobIncomeValue(job), 2)} บาท`;
-    drawSummaryRow(ctx, 86, jobY, 908, jobLabel, jobValue);
-    jobY += 58;
-  });
-  if (jobs.length > visibleJobs.length) {
-    drawText(ctx, `และอีก ${jobs.length - visibleJobs.length} งาน ดูรายละเอียดครบในระบบ`, 104, 1014, 820, {
-      size: 18,
-      weight: 900,
-      color: '#475569',
-      maxLines: 1,
-    });
-  }
-  drawSummaryRow(ctx, 86, 1080, 908, 'รวมรายได้ทุกงาน', `${number(totalIncome, 2)} บาท`, { green: true, strong: true });
-
-  drawSection(ctx, 64, 1170, 952, 492, '#ffffff', '#dbeafe');
-  drawText(ctx, 'รายละเอียดน้ำมัน', 92, 1194, 420, { size: 27, weight: 950, color: '#0f172a', maxLines: 1 });
-  drawText(ctx, 'ข้อมูลสำคัญสำหรับตรวจสอบเที่ยวงาน', 92, 1232, 520, { size: 18, weight: 800, color: '#64748b', maxLines: 1 });
-
-  const cardWidth = 432;
-  const cardHeight = 108;
-  const left = 86;
-  const right = 562;
-  drawInfoCard(ctx, left, 1272, cardWidth, cardHeight, 'วันที่/เวลาเติม', fillDateText(row), 'slate');
-  drawInfoCard(ctx, right, 1272, cardWidth, cardHeight, 'ระยะทาง', distance ? `${number(distance, 2)} กม.` : '-', 'blue');
-  drawInfoCard(ctx, left, 1394, cardWidth, cardHeight, 'ลิตรเติมจริง', liters ? `${number(liters, 2)} ลิตร` : '-', 'blue');
-  drawInfoCard(ctx, right, 1394, cardWidth, cardHeight, 'ลิตรมาตรฐาน', `${number(standardLiters, 2)} ลิตร`, 'blue');
-  drawInfoCard(ctx, left, 1516, cardWidth, cardHeight, 'ส่วนต่างการใช้', `${varianceLiters > 0 ? '+' : ''}${number(varianceLiters, 2)} ลิตร`, varianceLiters > 0 ? 'danger' : 'green');
-  drawInfoCard(ctx, right, 1516, cardWidth, cardHeight, 'ค่าใช้จ่ายเติมจริง', money(amount), 'green');
-
-  drawSection(ctx, 64, 1686, 952, 146, '#f8fafc', '#e2e8f0');
-  drawText(ctx, `หัวจ่ายก่อน ${before}   •   หัวจ่ายหลัง ${after}`, 92, 1712, 820, {
-    size: 20,
-    weight: 900,
-    color: '#334155',
-    maxLines: 1,
-  });
-  drawText(ctx, `ผู้กรอก ${recorder}   •   รูปแนบ ${photos} ไฟล์`, 92, 1750, 820, {
-    size: 20,
-    weight: 900,
-    color: '#334155',
-    maxLines: 1,
-  });
-  drawText(ctx, 'สร้างจากระบบ Test System', 92, 1792, 650, {
-    size: 17,
-    weight: 800,
-    color: '#94a3b8',
-    maxLines: 1,
-  });
-  drawText(ctx, new Date().toLocaleString('th-TH'), 988, 1792, 300, {
-    size: 17,
-    weight: 700,
-    color: '#94a3b8',
-    align: 'right',
-    maxLines: 1,
-  });
-
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (blob) resolve(blob);
-      else reject(new Error('สร้างรูปสรุปปิดงานไม่สำเร็จ'));
-    }, 'image/png', 0.96);
-  });
+  ctx.fillStyle = red; roundedRect(ctx, 76, y + 8, 930, 76, 17); ctx.fill();
+  drawText(ctx, 'รวมรายได้งานขนส่ง', 98, y + 25, 400, { size: 23, weight: 900, color: '#fff', maxLines: 1 });
+  drawText(ctx, money(income), 970, y + 21, 440, { size: 29, weight: 950, color: '#fff', align: 'right', maxLines: 1 });
+  y += 96;
+  drawText(ctx, 'หมายเหตุ: รายได้ไม่ใช่กำไรสุทธิ ดูรายจ่ายทั้งหมดได้ในเมนูบัญชีขนส่ง', 78, y, 920, { size: 17, color: muted, maxLines: 1 });
+  drawText(ctx, `ผู้บันทึก ${safeText(row.recorder_name || row.employee_name)}   •   เอกสารแนบ ${photoCount(row)} ไฟล์`, 78, y + 42, 920, { size: 17, color: muted, maxLines: 1 });
+  return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('ไม่สามารถสร้างไฟล์ใบสรุปงานได้')), 'image/png'));
 }
 
 function receiptFileName(row = {}) {

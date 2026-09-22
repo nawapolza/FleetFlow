@@ -34,13 +34,13 @@ export default function LoginPage() {
             <div className="flex items-center gap-3">
               <BrandMark className="login-logo-card h-24 w-24 rounded-[2rem] text-base tracking-[0.32em]" />
               <div>
-                <p className="text-xs font-black uppercase tracking-[.22em] text-violet-200">TEST SYSTEM</p>
+                <p className="text-xs font-black uppercase tracking-[.22em] text-red-100">TEST SYSTEM</p>
                 <h1 className="mt-1 text-3xl font-black tracking-tight text-white">Test System</h1>
               </div>
             </div>
 
-            <h2 className="mt-12 max-w-lg text-4xl font-black leading-tight text-white lg:text-5xl">ระบบจัดการงานขนส่งและน้ำมัน โทนพาสเทล ทันสมัย และพร้อมใช้งานจริง</h2>
-            <p className="mt-5 max-w-xl text-base font-semibold leading-8 text-violet-100/90">จัดการรายการน้ำมัน ใบสรุปงาน รถ คนขับ และรายงานแบบมืออาชีพในหน้าจอเดียว รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์</p>
+            <h2 className="mt-12 max-w-lg text-4xl font-black leading-tight text-white lg:text-5xl">ระบบจัดการงานขนส่งและน้ำมัน โฉมใหม่สีแดง–ขาว จัดการง่าย และพร้อมใช้งาน</h2>
+            <p className="mt-5 max-w-xl text-base font-semibold leading-8 text-red-100/90">จัดการรายการน้ำมัน ใบสรุปงาน รถ คนขับ และรายงานแบบมืออาชีพในหน้าจอเดียว รองรับมือถือ แท็บเล็ต และคอมพิวเตอร์</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-3">
@@ -125,7 +125,7 @@ export default function LoginPage() {
 function StoryPoint({ icon: Icon, label }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/7 p-4 backdrop-blur">
-      <Icon size={20} className="text-violet-200" />
+      <Icon size={20} className="text-red-100" />
       <p className="mt-3 text-sm font-black text-white">{label}</p>
     </div>
   );

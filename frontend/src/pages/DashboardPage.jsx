@@ -57,13 +57,12 @@ export default function DashboardPage({ setPage }) {
   }, [queryParams]);
 
   const { connected, lastEventAt } = useRealtime((payload) => {
-    if (['dashboard', 'deliveries', 'stocks', 'vehicles', 'users'].includes(payload?.kind)) load(true);
+    if (['dashboard', 'deliveries', 'vehicles', 'users'].includes(payload?.kind)) load(true);
   }, true);
 
   useEffect(() => {
     load();
-    const id = setInterval(() => load(true), 15000);
-    return () => clearInterval(id);
+    // ไม่ polling ทุก 15 วินาที: โหลดเมื่อเปิดหน้า/เปลี่ยน filter หรือเมื่อมีเหตุการณ์ข้อมูลเปลี่ยน
   }, [load]);
 
   function applyPreset(preset) {
@@ -93,15 +92,14 @@ export default function DashboardPage({ setPage }) {
             </div>
             <span className={`dashboard-sync ${connected ? 'is-online' : 'is-offline'}`}>
               {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
-              {connected ? 'ข้อมูล Realtime' : 'อัปเดตทุก 15 วินาที'}
+              {connected ? 'ข้อมูล Realtime' : 'กดรีเฟรชเพื่ออัปเดต'}
             </span>
           </div>
-          <p>ติดตามงานน้ำมัน ปริมาณสต๊อก ค่าใช้จ่าย รถ และประสิทธิภาพการวิ่งจากหน้าจอเดียว</p>
+          <p>ติดตามงานขนส่ง ปริมาณน้ำมัน ค่าใช้จ่าย ระยะทาง และประสิทธิภาพของรถในหน้าจอเดียว</p>
           <div className="dashboard-meta-row">
             <span><CalendarDays size={14} /> ช่วงข้อมูล {periodText}</span>
-            <span><Boxes size={14} /> สาขา {data?.branch?.name || '-'} ({data?.branch?.code || '-'})</span>
+            <span><Truck size={14} /> สาขา {data?.branch?.name || '-'} ({data?.branch?.code || '-'})</span>
             <span>อัปเดตล่าสุด {datetime(lastEventAt || lastLoaded)}</span>
-            {(data?.low_stock_count || 0) > 0 && <span className="is-danger"><AlertTriangle size={14} /> สต๊อกต่ำ {data.low_stock_count} รายการ</span>}
           </div>
         </div>
 
@@ -118,7 +116,7 @@ export default function DashboardPage({ setPage }) {
           </div>
           <div className="dashboard-filter-actions">
             <button className="btn-soft" onClick={refresh}><RefreshCw size={17} /> รีเฟรช</button>
-            <button className="btn-primary" onClick={() => setPage('stocks')}>เติมสต๊อก</button>
+            <button className="btn-primary" onClick={() => setPage('ledger')}>บัญชีงานขนส่ง</button>
           </div>
         </div>
       </section>
@@ -143,28 +141,7 @@ export default function DashboardPage({ setPage }) {
         </div>
       </section>
 
-      <section className="dashboard-stock-grid">
-        {(data?.stocks || []).map((stock) => {
-          const balance = Number(stock.balance_liters || 0);
-          const status = stock.level_status || 'ready';
-          const state = stock.level_label || (status === 'critical' ? 'วิกฤต' : status === 'low' ? 'ควรเตรียมเติม' : 'พร้อมให้บริการ');
-          const tone = status === 'critical' ? 'danger' : status === 'low' ? 'warning' : 'normal';
-          const percent = Number(stock.available_percent || 0);
-          return (
-            <div key={stock.item_type} className={`card-clean stock-summary-card is-${tone}`}>
-              <div className="stock-summary-top">
-                <div>
-                  <p>สต๊อก {stock.item_type}</p>
-                  <strong>{number(balance, 2)} <small>ลิตร</small></strong>
-                </div>
-                <span><Boxes size={22} /></span>
-              </div>
-              <div className="stock-progress"><i style={{ width: `${Math.max(balance > 0 ? 4 : 0, Math.min(100, percent))}%` }} /></div>
-              <div className="stock-summary-foot"><span>{state} · {number(percent, 0)}%</span><small>{stock.tank_name || 'ถังหลัก'} / {number(stock.capacity_liters, 0)} ลิตร</small></div>
-            </div>
-          );
-        })}
-      </section>
+
 
       <section className="dashboard-rank-grid">
         <div className="card-clean dashboard-list-card"><SectionHead icon={Truck} title="รถใช้น้ำมันสูงสุด" subtitle="เรียงตามทะเบียนรถ" /><RankList rows={data?.by_plate || []} suffix="ลิตร" /></div>
@@ -200,7 +177,6 @@ export default function DashboardPage({ setPage }) {
       <section className="dashboard-secondary-metrics">
         <Metric icon={Truck} label="น้ำหนักหิน / ทราย" value={`${number(data?.total_stone_weight, 2)} / ${number(data?.total_sand_weight, 2)}`} unit="ตัน" helper="แยกน้ำหนักตามประเภท" />
         <Metric icon={AlertTriangle} label="แจ้งเตือนค้างอ่าน" value={number(data?.unread_notifications)} unit="รายการ" helper="ควรเปิดตรวจสอบ" tone="danger" />
-        <Metric icon={Boxes} label="สต๊อกต่ำ" value={number(data?.low_stock_count)} unit="รายการ" helper="ต่ำกว่า 100 ลิตร" tone={(data?.low_stock_count || 0) ? 'danger' : 'success'} />
       </section>
     </div>
   );

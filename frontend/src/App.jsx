@@ -13,11 +13,8 @@ import AdminRecoveryPage from './pages/AdminRecoveryPage.jsx';
 import AccountPage from './pages/AccountPage.jsx';
 import NotificationsPage from './pages/NotificationsPage.jsx';
 import MonthlyReportsPage from './pages/MonthlyReportsPage.jsx';
-import StockPage from './pages/StockPage.jsx';
-import StockStatusPage from './pages/StockStatusPage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
 import VehiclesPage from './pages/VehiclesPage.jsx';
-import BranchStockOverviewPage from './pages/BranchStockOverviewPage.jsx';
 import TransportLedgerPage from './pages/TransportLedgerPage.jsx';
 
 export default function App() {
@@ -58,8 +55,6 @@ function AppShell() {
         quick: <EmployeeQuickPage key={`quick-${pageKey}`} />,
         calculator: <FuelCalculatorPage key={`calculator-${pageKey}`} />,
         deliveries: <DeliveriesPage key={`deliveries-${pageKey}`} />,
-        stocks: <StockStatusPage key={`stocks-${pageKey}`} />,
-        availability: <BranchStockOverviewPage key={`availability-${pageKey}`} />,
       };
     }
     return {
@@ -69,8 +64,6 @@ function AppShell() {
       calculator: <FuelCalculatorPage key={`calculator-${pageKey}`} />,
       quick: <EmployeeQuickPage key={`quick-${pageKey}`} />,
       deliveries: <DeliveriesPage key={`deliveries-${pageKey}`} />,
-      stocks: <StockPage key={`stocks-${pageKey}`} />,
-      availability: <BranchStockOverviewPage key={`availability-${pageKey}`} />,
       reports: <MonthlyReportsPage key={`reports-${pageKey}`} />,
       ledger: <TransportLedgerPage key={`ledger-${pageKey}`} />,
       users: <UsersPage key={`users-${pageKey}`} />,

@@ -1,13 +1,7 @@
-import BrandMark from './BrandMark.jsx';
-
-export default function Loading({ text = 'กำลังเชื่อมข้อมูล...' }) {
-  return (
-    <div className="nova-loading-wrap">
-      <div className="nova-loading">
-        <div className="nova-loading-radar"><i /><b /><span><BrandMark compact className="h-12 w-12 rounded-2xl text-[11px]" /></span></div>
-        <p>{text}</p>
-        <small>TEST SYSTEM LIVE ENGINE</small>
-      </div>
-    </div>
-  );
+import { LoaderCircle, Truck } from 'lucide-react';
+export default function Loading({text='กรุณารอ กำลังเตรียมข้อมูล...'}) {
+  return <div className="rf-loading-screen" role="status" aria-live="polite">
+    <div className="rf-loading-card"><div className="rf-loading-symbol"><Truck size={32}/><LoaderCircle size={23} className="rf-spin"/></div>
+    <span className="rf-kicker">TEST SYSTEM / TRANSPORT</span><h2>กรุณารอ</h2><p>{text}</p><div className="rf-progress"><span/></div>
+    <small>กำลังเชื่อมต่อข้อมูลอย่างปลอดภัย</small></div></div>;
 }

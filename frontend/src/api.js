@@ -71,7 +71,9 @@ async function parseResponse(response) {
   return data;
 }
 
-export async function apiRequest(path, options = {}) {
+// A simultaneous identical GET shares one network request. Mutating methods are never deduplicated.
+const pendingReads = new Map();
+export function apiRequest(path, options = {}) {
   const headers = new Headers(options.headers || {});
   const token = getToken();
   if (token) headers.set('Authorization', `Bearer ${token}`);
@@ -80,12 +82,20 @@ export async function apiRequest(path, options = {}) {
   if (!(options.body instanceof FormData) && options.body !== undefined && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
-  const response = await fetch(buildUrl(path), {
+  const method = String(options.method || 'GET').toUpperCase();
+  const requestUrl = buildUrl(path);
+  const shareable = method === 'GET' && !options.signal && options.body === undefined;
+  const requestKey = shareable ? `${requestUrl}|${token}|${branchId}` : null;
+  if (requestKey && pendingReads.has(requestKey)) return pendingReads.get(requestKey);
+  const promise = fetch(requestUrl, {
     ...options,
     headers,
     body: options.body instanceof FormData ? options.body : options.body !== undefined ? JSON.stringify(options.body) : undefined,
-  });
-  return parseResponse(response);
+  }).then(parseResponse);
+  if (!requestKey) return promise;
+  pendingReads.set(requestKey, promise);
+  promise.finally(() => { if (pendingReads.get(requestKey) === promise) pendingReads.delete(requestKey); }).catch(() => {});
+  return promise;
 }
 
 function query(params = {}) {
@@ -131,11 +141,6 @@ export const api = {
   deleteUser: (id) => apiRequest(`/users/${id}`, { method: 'DELETE' }),
   vehicles: () => apiRequest('/vehicles'),
   vehicleOptions: () => apiRequest('/vehicles/options'),
-  searchPlaces: (text) => apiRequest(`/maps/search${query({ q: text })}`),
-  mapStatus: () => apiRequest('/maps/status'),
-  importGoogleMapsLink: (url) => apiRequest('/maps/import-google-link', { method: 'POST', body: { url } }),
-  reversePlace: (lat, lon) => apiRequest(`/maps/reverse${query({ lat, lon })}`),
-  calculateRoute: (originLat, originLon, destinationLat, destinationLon) => apiRequest(`/maps/route${query({ origin_lat: originLat, origin_lon: originLon, destination_lat: destinationLat, destination_lon: destinationLon })}`),
   createVehicle: (body) => apiRequest('/vehicles', { method: 'POST', body }),
   updateVehicle: (id, body) => apiRequest(`/vehicles/${id}`, { method: 'PUT', body }),
   deleteVehicle: (id) => apiRequest(`/vehicles/${id}`, { method: 'DELETE' }),

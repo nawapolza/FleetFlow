@@ -171,183 +171,63 @@ function efficiency(row) {
 
 
 export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
-  const fillDateText = `${date(row.fill_date || row.work_date)}${row.fill_time ? ` เวลา ${row.fill_time}` : ''}`;
-  const distance = distanceValue(row);
-  const fuelRate = efficiency(row);
-  const expectedRate = expectedEfficiency(row);
-  const estimatedDistance = estimatedDistanceValue(row);
-  const liters = litersValue(row);
-  const standardLiters = standardLitersValue(row);
-  const varianceLiters = varianceLitersValue(row);
-  const varianceBaht = hasValue(row?.fuel_variance_baht)
-    ? round2(row.fuel_variance_baht)
-    : round2(varianceLiters * parseDecimal(row?.price_baht_per_liter || row?.price_per_liter, 0));
   const jobs = jobsFor(row);
+  const distance = distanceValue(row);
+  const liters = litersValue(row);
+  const rate = expectedEfficiency(row);
+  const standardLiters = standardLitersValue(row);
   const tripFee = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'trip_fee_baht'), 0), 2) || incomeValue(row, 'trip_fee_baht');
   const allowance = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'allowance_baht'), 0), 2) || incomeValue(row, 'allowance_baht');
   const otherIncome = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'other_income_baht'), 0), 2) || incomeValue(row, 'other_income_baht');
   const totalIncome = totalIncomeValue(row);
-  const routeSummary = routeSummaryText(row);
   const groups = [
-    { label: 'รูปบิล', paths: photosFor(row, 'bill_photos', 'bill_photo', 'receipt_photo') },
-    { label: 'รูปเอกสาร', paths: photosFor(row, 'document_photos', 'document_photo') },
-    { label: 'รูปเกี่ยวกับน้ำมัน', paths: photosFor(row, 'oil_photos', 'oil_photo') },
-    { label: 'รูปบรรทุก', paths: photosFor(row, 'cargo_photos', 'cargo_photo') },
-    { label: 'รูปแอดบลู', paths: photosFor(row, 'adblue_photos', 'adblue_photo') },
+    { label: 'บิล', paths: photosFor(row, 'bill_photos', 'bill_photo', 'receipt_photo') },
+    { label: 'เอกสาร', paths: photosFor(row, 'document_photos', 'document_photo') },
+    { label: 'น้ำมัน', paths: photosFor(row, 'oil_photos', 'oil_photo') },
+    { label: 'บรรทุก', paths: photosFor(row, 'cargo_photos', 'cargo_photo') },
+    { label: 'แอดบลู', paths: photosFor(row, 'adblue_photos', 'adblue_photo') },
   ];
-  const allPhotos = groups.flatMap((group) => group.paths);
-
-  return (
-    <article className="receipt-card overflow-hidden rounded-[2rem] border border-violet-100 bg-[linear-gradient(180deg,#fff_0%,#fdf9ff_55%,#f8fbff_100%)] shadow-[0_24px_80px_rgba(124,58,237,.10)]">
-      <div className="border-b border-violet-100 bg-[linear-gradient(135deg,rgba(245,243,255,.95),rgba(236,254,255,.9))] p-4 md:p-6">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-          <div className="min-w-0 flex-1 space-y-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.5rem] border border-white/80 bg-white/90 text-lg font-black tracking-[0.28em] text-violet-700 shadow-sm">TS</div>
-              <div className="min-w-0">
-                <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-violet-100 px-3 py-1 text-[10px] font-black uppercase tracking-[.24em] text-violet-700">TEST SYSTEM</span>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[.18em] text-emerald-700">Receipt View</span>
-                </div>
-                <h3 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">ใบสรุปรายการ</h3>
-                <p className="mt-1 max-w-2xl text-sm font-semibold leading-6 text-slate-500">ดีไซน์ใหม่โทนพาสเทลสำหรับดูรายละเอียดงาน น้ำมัน รายได้ และเอกสารแนบในหน้าเดียว</p>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-[1.3fr_.7fr]">
-              <div className="rounded-[1.5rem] border border-white/80 bg-white/85 p-4 shadow-sm">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="max-w-full truncate text-3xl font-black tracking-tight text-slate-950">{row.plate_no || 'ไม่ระบุทะเบียน'}</h4>
-                  <span className="rounded-full bg-violet-50 px-3 py-1 text-xs font-black text-violet-700">{row.item_type || '-'}</span>
-                  {row.operation_type && <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-black text-cyan-700">{row.operation_type}</span>}
-                </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">คนขับ</p>
-                    <p className="mt-1 text-sm font-black text-slate-900">{row.driver_name || row.driver_name_input || '-'}</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3">
-                    <p className="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">วันที่ / เวลาเติม</p>
-                    <p className="mt-1 text-sm font-black text-slate-900">{fillDateText}</p>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 p-3 sm:col-span-2">
-                    <p className="text-[11px] font-black uppercase tracking-[.14em] text-slate-400">เส้นทางหลัก</p>
-                    <p className="mt-1 text-sm font-black leading-6 text-slate-900">{routeSummary}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-[1.5rem] border border-violet-100 bg-white/80 p-4 shadow-sm">
-                <p className="text-[11px] font-black uppercase tracking-[.16em] text-violet-600">ภาพรวม</p>
-                <div className="mt-3 grid gap-2">
-                  <SummaryInfo label="จำนวนงาน" value={`${jobs.length} งาน`} tone="dark" />
-                  <SummaryInfo label="ระยะทางรวม" value={distance ? `${number(distance, 2)} กม.` : '-'} tone="blue" />
-                  <SummaryInfo label="ลิตรเติมจริง" value={liters ? `${number(liters, 2)} ลิตร` : '-'} tone="green" />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {(onEdit || onDelete) && (
-            <div className="flex gap-2 print:hidden xl:flex-col xl:pt-1">
-              {onEdit && <button type="button" className="btn-soft flex-1" onClick={onEdit}><Edit size={16} /> แก้ไข</button>}
-              {onDelete && <button type="button" className="btn-danger flex-1" onClick={onDelete}><Trash2 size={16} /> ลบ</button>}
-            </div>
-          )}
+  const allPhotos = groups.flatMap(group => group.paths);
+  return <article className="rf-invoice receipt-card">
+    <header className="rf-invoice-head">
+      <div className="rf-invoice-headline"><span className="rf-invoice-accent"/><div><small>TEST SYSTEM / TRANSPORT OPERATIONS</small><h2>ใบสรุปงานขนส่ง</h2><p>รายละเอียดเที่ยวงานและการใช้น้ำมัน • ระยะทางจากการกรอกข้อมูลจริง</p></div></div>
+      <div className="rf-invoice-id"><span>ทะเบียนรถ</span><strong>{row.plate_no || 'ไม่ระบุ'}</strong><small>{row.item_type || 'น้ำมัน'} · {row.operation_type || 'บันทึกงาน'}</small></div>
+    </header>
+    <div className="rf-invoice-meta">
+      <div><span>วันที่ / เวลา</span><strong>{date(row.fill_date || row.work_date)} {row.fill_time || ''}</strong></div>
+      <div><span>ผู้ขับรถ</span><strong>{row.driver_name || row.driver_name_input || '-'}</strong></div>
+      <div><span>จำนวนงาน</span><strong>{jobs.length} งาน</strong></div>
+      <div><span>เลขรถ</span><strong>{row.vehicle_no || '-'}</strong></div>
+    </div>
+    <div className="rf-invoice-body">
+      <section className="rf-invoice-section"><div className="rf-invoice-section-head"><span>01</span><div><h3>รายการขนส่ง</h3><p>รายละเอียดวัสดุ น้ำหนัก และเส้นทางในแต่ละงาน</p></div></div>
+        <div className="rf-invoice-jobs">
+          {jobs.map((job, index) => <div className="rf-invoice-job" key={job.id || index}>
+            <div className="rf-invoice-job-top"><span>งาน {index + 1}</span><strong>{job.cargo_name || 'ไม่ระบุวัสดุ'}</strong><b>{number(job.distance_km, 2)} กม.</b></div>
+            <div className="rf-invoice-route"><div><small>ต้นทาง</small><strong>{job.origin_place || '-'}</strong></div><div><small>ปลายทาง</small><strong>{job.destination_place || '-'}</strong></div></div>
+            <div className="rf-invoice-job-bottom"><span>น้ำหนักขึ้น: {kgText(job.loading_weight_kg)}</span><span>น้ำหนักลง: {kgText(job.unloading_weight_kg)}</span><span>รายได้: {money(jobIncomeValue(job))}</span></div>
+          </div>)}
         </div>
-      </div>
-
-      <div className="space-y-4 p-4 md:p-6">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <SummaryInfo label="ค่าใช้จ่ายเติมจริง" value={money(displayAmountValue(row))} tone="blue" />
-          <SummaryInfo label="ราคาน้ำมัน / ลิตร" value={priceText(row)} tone="blue" />
-          <SummaryInfo label="ลิตรมาตรฐาน" value={`${number(standardLiters, 2)} ลิตร`} tone="green" />
-          <SummaryInfo label="ส่วนต่างจากมาตรฐาน" value={`${varianceLiters > 0 ? '+' : ''}${number(varianceLiters, 2)} ลิตร · ${money(varianceBaht)}`} tone={varianceLiters > 0 ? 'danger' : 'green'} />
-        </div>
-
-        <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
-          <section className="rounded-[1.6rem] border border-cyan-100 bg-cyan-50/55 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <PackageCheck size={18} className="text-cyan-700" />
-              <div>
-                <p className="text-sm font-black text-slate-900">รายการงานทั้งหมด</p>
-                <p className="text-xs font-bold text-slate-500">แยกตามงาน พร้อมต้นทาง ปลายทาง น้ำหนัก และรายได้</p>
-              </div>
-            </div>
-            <div className="space-y-3">
-              {jobs.map((job, index) => <JobSummaryBlock key={job.id || index} job={job} index={index} />)}
-            </div>
-          </section>
-
-          <section className="rounded-[1.6rem] border border-emerald-100 bg-emerald-50/60 p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Banknote size={18} className="text-emerald-700" />
-              <div>
-                <p className="text-sm font-black text-slate-900">สรุปรายได้</p>
-                <p className="text-xs font-bold text-slate-500">รวมค่าเที่ยว เบี้ยเลี้ยง และรายได้อื่น</p>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <ReceiptIncomeLine label="ค่าเที่ยว" value={tripFee} />
-              <ReceiptIncomeLine label="เบี้ยเลี้ยง" value={allowance} />
-              {otherIncome > 0 && <ReceiptIncomeLine label="รายได้อื่น" value={otherIncome} />}
-              <ReceiptIncomeLine label="รวมรายได้" value={totalIncome} total />
-            </div>
-
-            <div className="mt-4 rounded-[1.35rem] border border-white/80 bg-white/85 p-3">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <MiniLine icon={Route} label="ระยะทางที่กรอก" value={distance ? `${number(distance, 2)} กม.` : '-'} />
-                <MiniLine icon={Gauge} label="อัตราประจำรถ" value={expectedRate ? `${number(expectedRate, 2)} กม./ลิตร` : '-'} />
-                <MiniLine icon={Gauge} label="อัตราที่ใช้จริง" value={fuelRate ? `${number(fuelRate, 2)} กม./ลิตร` : '-'} />
-                <MiniLine icon={Camera} label="รูปแนบ" value={`${allPhotos.length} ไฟล์`} />
-              </div>
-            </div>
-          </section>
-        </div>
-
-        <details className="group overflow-hidden rounded-[1.6rem] border border-slate-200 bg-white">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-4 text-sm font-black text-slate-700">
-            <span>รายละเอียดเพิ่มเติม / เอกสารแนบ</span>
-            <ChevronDown size={18} className="transition group-open:rotate-180" />
-          </summary>
-          <div className="space-y-4 border-t border-slate-100 p-4">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <Info label="เลขมิเตอร์หัวจ่ายก่อนเติม" value={meterText(row.station_meter_before || row.odometer_before)} />
-              <Info label="เลขมิเตอร์หัวจ่ายหลังเติม" value={meterText(row.station_meter_after || row.odometer_after)} />
-              <Info label="ระยะทางย้อนตรวจสอบ" value={estimatedDistance ? `${number(estimatedDistance, 2)} กม.` : '-'} />
-              <Info label="ชื่อผู้กรอก" value={row.recorder_name || row.employee_name || '-'} />
-              <Info label="ชื่อผู้เติม" value={row.filler_name || '-'} />
-              <Info label="เบอร์รถ" value={row.vehicle_no || '-'} />
-              <Info label="สูตรคำนวณจำนวนลิตร" value={distance && expectedRate ? `${number(distance, 2)} ÷ ${number(expectedRate, 2)} = ${number(standardLiters, 2)} ลิตร` : '-'} />
-              <Info label="สถานะการบันทึก" value="Test System" />
-            </div>
-
-            <div className="space-y-3">
-              <h4 className="text-sm font-black text-slate-900">รายละเอียดงานทั้งหมด ({jobs.length} งาน)</h4>
-              {jobs.map((job, index) => <JobDetailCard key={job.id || index} job={job} index={index} />)}
-            </div>
-
-            {row.note && (
-              <div className="rounded-2xl border border-violet-100 bg-violet-50/70 p-3">
-                <p className="text-[11px] font-black text-violet-700">หมายเหตุ</p>
-                <p className="mt-1 whitespace-pre-wrap text-sm font-bold leading-6 text-violet-950">{row.note}</p>
-              </div>
-            )}
-
-            <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-3 md:p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <h4 className="flex items-center gap-2 text-sm font-black text-slate-800"><Camera size={17} className="text-violet-600" /> ไฟล์แนบแยกตามหมวด</h4>
-                <span className="text-xs font-bold text-slate-400">กดรูปเพื่อเปิดดู</span>
-              </div>
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-                {groups.map((group) => <PhotoGroup key={group.label} label={group.label} paths={group.paths} />)}
-              </div>
-            </div>
-          </div>
-        </details>
-      </div>
-    </article>
-  );
+      </section>
+      <section className="rf-invoice-section"><div className="rf-invoice-section-head"><span>02</span><div><h3>ระยะทางและน้ำมัน</h3><p>คำนวณจากระยะทางที่กรอก ไม่ใช้ GPS</p></div></div>
+        <div className="rf-invoice-numbers"><div><span>ระยะทางรวม</span><strong>{number(distance, 2)} <small>กม.</small></strong></div><div><span>อัตราประจำรถ</span><strong>{rate ? number(rate, 2) : '-'} <small>กม./ลิตร</small></strong></div><div><span>น้ำมันมาตรฐาน</span><strong>{number(standardLiters, 2)} <small>ลิตร</small></strong></div><div><span>เติมจริง</span><strong>{number(liters, 2)} <small>ลิตร</small></strong></div></div>
+        <div className="rf-invoice-footline"><span>ราคาน้ำมัน / ลิตร</span><strong>{priceText(row)}</strong></div>
+        <div className="rf-invoice-footline"><span>ค่าใช้จ่ายน้ำมันจริง</span><strong>{money(displayAmountValue(row))}</strong></div>
+      </section>
+      <section className="rf-invoice-section rf-invoice-money"><div className="rf-invoice-section-head"><span>03</span><div><h3>สรุปรายได้งานขนส่ง</h3><p>รวมรายได้ของงานในรายการนี้</p></div></div>
+        <div className="rf-invoice-footline"><span>ค่าเที่ยว</span><strong>{money(tripFee)}</strong></div><div className="rf-invoice-footline"><span>เบี้ยเลี้ยง</span><strong>{money(allowance)}</strong></div><div className="rf-invoice-footline"><span>รายได้อื่น</span><strong>{money(otherIncome)}</strong></div>
+        <div className="rf-invoice-grand"><span>รวมรายได้</span><strong>{money(totalIncome)}</strong></div>
+        <small className="rf-invoice-disclaimer">จำนวนเงินนี้เป็นรายได้งานขนส่ง ไม่ใช่กำไรสุทธิของรถ โปรดดูต้นทุนทั้งหมดในเมนูบัญชีขนส่ง</small>
+      </section>
+      <details className="rf-invoice-details"><summary>ข้อมูลเพิ่มเติมและไฟล์แนบ <ChevronDown size={18}/></summary><div className="rf-invoice-details-content">
+        <div className="rf-invoice-extra"><Info label="ผู้บันทึก" value={row.recorder_name || row.employee_name || '-'} /><Info label="ผู้เติม" value={row.filler_name || '-'} /><Info label="หัวจ่ายก่อน" value={meterText(row.station_meter_before || row.odometer_before)} /><Info label="หัวจ่ายหลัง" value={meterText(row.station_meter_after || row.odometer_after)} /></div>
+        {row.note && <p className="rf-invoice-note">หมายเหตุ: {row.note}</p>}
+        <div className="rf-invoice-files">{groups.map(group => <PhotoGroup key={group.label} label={group.label} paths={group.paths}/>)}</div>
+        <p className="rf-invoice-attachment-count">เอกสารแนบ {allPhotos.length} ไฟล์</p>
+      </div></details>
+    </div>
+    <footer className="rf-invoice-footer"><span>TEST SYSTEM · TRANSPORT RECEIPT</span><div className="rf-invoice-actions print:hidden">{onEdit && <button type="button" onClick={onEdit}><Edit size={16}/> แก้ไข</button>}{onDelete && <button type="button" onClick={onDelete}><Trash2 size={16}/> ลบรายการ</button>}</div></footer>
+  </article>;
 }
 
 function JobSummaryBlock({ job, index }) {

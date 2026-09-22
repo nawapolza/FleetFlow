@@ -14,7 +14,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import Loading from '../components/Loading.jsx';
 import BranchScopeBar from '../components/BranchScopeBar.jsx';
-import RouteDistancePlanner from '../components/RouteDistancePlanner.jsx';
 import { useRealtime } from '../hooks/useRealtime.js';
 import { alertError } from '../utils/alerts.js';
 import { money, number, parseDecimal } from '../utils/format.js';
@@ -35,15 +34,13 @@ function n(value) {
 export default function FuelCalculatorPage() {
   const [form, setForm] = useState(blank);
   const [vehicles, setVehicles] = useState([]);
-  const [stocks, setStocks] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(true);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const [vehicleRes, stockRes] = await Promise.all([api.vehicleOptions(), api.stockStatus()]);
+      const vehicleRes = await api.vehicleOptions();
       setVehicles(vehicleRes.data || []);
-      setStocks(stockRes.data || []);
     } catch (err) {
       if (!silent) alertError(err, 'โหลดข้อมูลเครื่องคำนวณไม่ได้');
     } finally {
@@ -52,7 +49,7 @@ export default function FuelCalculatorPage() {
   }, []);
 
   useRealtime((payload) => {
-    if (['stocks', 'vehicles'].includes(payload?.kind)) load(true);
+    if (payload?.kind === 'vehicles') load(true);
   }, true);
 
   useEffect(() => { load(); }, [load]);
@@ -118,8 +115,8 @@ export default function FuelCalculatorPage() {
         <span className="page-orbit-signal">LIVE CALC</span>
       </div>
 
-      <BranchScopeBar label="ข้อมูลคำนวณของสาขา" detail="ตัวเลือกรถและสถานะสต๊อกที่ใช้คำนวณมาจากสาขาที่เลือก" />
-      <RouteDistancePlanner onDistance={(distance) => setField('distance_km', String(distance))} />
+      <BranchScopeBar label="ข้อมูลคำนวณของสาขา" detail="เลือกทะเบียนรถ กรอกระยะทางจริงและคำนวณค่าน้ำมันโดยไม่ใช้ GPS" />
+      <div className="red-manual-note">ระบุระยะทางที่วิ่งเองด้านล่าง ระบบจะคำนวณน้ำมันและค่าใช้จ่ายให้ทันที ไม่ใช้ข้อมูล GPS</div>
       <section className="calculator-layout">
         <div className="card-clean calculator-input-card">
           <div className="calculator-card-head">
@@ -185,19 +182,7 @@ export default function FuelCalculatorPage() {
         </div>
       </section>
 
-      <section className="card-clean calculator-stock-section">
-        <div className="calculator-stock-head"><div><h2>ความพร้อมของสต๊อก</h2><p>ข้อมูลคงเหลือแบบเรียลไทม์จากระบบเดียวกัน</p></div><span>LIVE STOCK</span></div>
-        <div className="calculator-stock-grid">
-          {stocks.map((stock) => (
-            <div key={stock.item_type} className={`calculator-stock-card is-${stock.level_status || 'ready'}`}>
-              <div><p>{stock.tank_name || stock.item_type}</p><span>{stock.item_type}</span></div>
-              <strong>{number(stock.balance_liters, 2)} <small>ลิตร</small></strong>
-              <div className="calculator-stock-bar"><i style={{ width: `${Math.max(0, Math.min(100, Number(stock.available_percent || 0)))}%` }} /></div>
-              <footer><span>{stock.level_label || 'พร้อมให้บริการ'}</span><small>{number(stock.available_percent, 1)}%</small></footer>
-            </div>
-          ))}
-        </div>
-      </section>
+
     </div>
   );
 }

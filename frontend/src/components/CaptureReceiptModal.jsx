@@ -299,10 +299,10 @@ export default function CaptureReceiptModal({ row, onClose }) {
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <button type="button" onClick={openCapturePreview} disabled={preparingImage} className="hidden items-center gap-1.5 rounded-2xl bg-white px-3 py-2 text-xs font-black text-blue-700 shadow-lg ring-1 ring-blue-100 sm:inline-flex">
+            <button type="button" onClick={openCapturePreview} disabled={preparingImage} className="hidden items-center gap-1.5 rounded-2xl bg-white px-3 py-2 text-xs font-black text-red-700 shadow-lg ring-1 ring-blue-100 sm:inline-flex">
               <Camera size={16} /> {preparingImage ? 'กำลังสร้าง...' : 'แคปหน้าเดียว'}
             </button>
-            <button type="button" onClick={saveReceiptImage} disabled={savingImage || preparingImage} className="hidden items-center gap-1.5 rounded-2xl bg-blue-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-blue-600/20 sm:inline-flex">
+            <button type="button" onClick={saveReceiptImage} disabled={savingImage || preparingImage} className="hidden items-center gap-1.5 rounded-2xl bg-red-600 px-3 py-2 text-xs font-black text-white shadow-lg shadow-red-600/20 sm:inline-flex">
               <Download size={16} /> {savingImage ? 'กำลังบันทึก...' : 'แชร์/บันทึกรูป'}
             </button>
             <button type="button" onClick={onClose} className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-lg" aria-label="ปิดใบสรุป">
@@ -313,7 +313,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-[1.6rem]">
           <article className="capture-receipt overflow-hidden rounded-[1.6rem] border border-blue-100 bg-white shadow-[0_18px_50px_rgba(15,23,42,.16)]">
-            <header className="bg-gradient-to-br from-white via-sky-50 to-blue-50 p-3 sm:p-4">
+            <header className="bg-gradient-to-br from-white via-red-50 to-rose-100 p-3 sm:p-4">
               <div className="flex items-start gap-3">
                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white p-1 shadow-lg ring-1 ring-violet-100 sm:h-14 sm:w-14">
                   <BrandMark compact className="h-full w-full rounded-[1rem] text-[11px] tracking-[0.28em]" />
@@ -393,7 +393,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
                 </summary>
                 <div className="space-y-2.5 border-t border-slate-100 p-2.5">
                   <div className="flex items-center gap-2 px-1">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-600 text-white"><Route size={16} /></div>
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600 text-white"><Route size={16} /></div>
                     <div>
                       <p className="text-xs font-black text-slate-900 sm:text-sm">รายละเอียดน้ำมัน</p>
                       <p className="text-[10px] font-bold text-slate-400">ข้อมูลการใช้น้ำมันและเอกสารแนบ</p>
@@ -458,7 +458,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
               <p className="truncate text-[11px] font-bold text-slate-500">iPhone: แตะค้างบนรูป → บันทึกรูปภาพ</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <button type="button" onClick={openImageInNewTab} className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-blue-700">เต็มจอ</button>
+              <button type="button" onClick={openImageInNewTab} className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-red-700">เต็มจอ</button>
               <button type="button" onClick={() => setShowImagePreview(false)} className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><X size={18} /></button>
             </div>
           </div>
@@ -478,7 +478,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
 function TimelineRow({ title, subtitle = '', meta = '', active = false }) {
   return (
     <div className="relative flex items-start gap-3 pb-4 last:pb-0 sm:gap-4 sm:pb-5">
-      <div className={`relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-4 border-white shadow-sm sm:h-9 sm:w-9 ${active ? 'bg-blue-600' : 'bg-slate-500'}`}>
+      <div className={`relative z-10 mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-4 border-white shadow-sm sm:h-9 sm:w-9 ${active ? 'bg-red-600' : 'bg-slate-500'}`}>
         {active ? <CheckCircle2 size={13} className="text-white" /> : <span className="block h-3 w-3 rounded-full bg-white" />}
       </div>
       <div className="min-w-0 flex-1 pt-0.5">
@@ -563,7 +563,7 @@ function CaptureThumb({ path, index }) {
   const href = uploadUrl(path);
   if (isPdf(path)) {
     return (
-      <a href={href} target="_blank" rel="noreferrer" className="flex aspect-square items-center justify-center rounded-xl bg-blue-50 text-blue-700 ring-1 ring-blue-100">
+      <a href={href} target="_blank" rel="noreferrer" className="flex aspect-square items-center justify-center rounded-xl bg-blue-50 text-red-700 ring-1 ring-blue-100">
         <FileText size={20} />
       </a>
     );
