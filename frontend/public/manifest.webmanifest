@@ -10,13 +10,13 @@
   "lang": "th",
   "icons": [
     {
-      "src": "/kwanjai-icon-192.png",
+      "src": "/kwanjai-brand-v2-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/kwanjai-icon-512.png",
+      "src": "/kwanjai-brand-v2-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

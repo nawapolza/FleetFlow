@@ -955,12 +955,16 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                         </div>
                         <Field className="field-featured" label="ประเภทสินค้า / ชื่องาน" hint="เช่น ทราย หิน หรือไม้สับ" value={job.cargo_name} onChange={(v) => setJobField(index, 'cargo_name', v)} placeholder="กรอกชื่องาน" />
                         <Field className="field-featured" type="number" step="0.01" label="ระยะทางงานนี้" hint="ระบบจะรวมทุกงานอัตโนมัติ" value={job.distance_km} onChange={(v) => setJobField(index, 'distance_km', v)} suffix="กม." />
-                        <SmartDateField label="วันที่บรรทุก" hint="ไม่บังคับ" value={job.load_date} onChange={(v) => setJobField(index, 'load_date', v)} optional />
-                        <SmartDateField label="วันที่ลงของ" hint="ไม่บังคับ" value={job.unload_date} onChange={(v) => setJobField(index, 'unload_date', v)} optional />
+                        <div className="kw-paired-inputs field-wide">
+                          <SmartDateField label="วันที่บรรทุก" hint="ไม่บังคับ" value={job.load_date} onChange={(v) => setJobField(index, 'load_date', v)} optional />
+                          <SmartDateField label="วันที่ลงของ" hint="ไม่บังคับ" value={job.unload_date} onChange={(v) => setJobField(index, 'unload_date', v)} optional />
+                        </div>
                         <Field className="field-wide" label="จุดรับสินค้า / บ่อต้นทาง" hint="จุดขึ้นงาน" value={job.origin_place} onChange={(v) => setJobField(index, 'origin_place', v)} placeholder="เช่น บ่อทราย SMC" />
-                        <Field type="number" step="0.01" label="น้ำหนักต้นทาง" hint="น้ำหนักจากจุดรับสินค้า" value={job.loading_weight_kg} onChange={(v) => setJobField(index, 'loading_weight_kg', v)} suffix="กิโลกรัม" />
                         <Field className="field-wide" label="จุดลงงาน / ปลายทาง" hint="สถานที่ส่งสินค้า" value={job.destination_place} onChange={(v) => setJobField(index, 'destination_place', v)} placeholder="เช่น โออาร์ซี บางเสาธง" />
-                        <Field type="number" step="0.01" label="น้ำหนักปลายทาง" hint="น้ำหนักจากจุดลงงาน" value={job.unloading_weight_kg} onChange={(v) => setJobField(index, 'unloading_weight_kg', v)} suffix="กิโลกรัม" />
+                        <div className="kw-paired-inputs field-wide">
+                          <TonField label="น้ำหนักต้นทาง" hint="น้ำหนักจากจุดรับสินค้า" kilograms={job.loading_weight_kg} onKilogramsChange={(v) => setJobField(index, 'loading_weight_kg', v)} />
+                          <TonField label="น้ำหนักปลายทาง" hint="น้ำหนักจากจุดลงงาน" kilograms={job.unloading_weight_kg} onKilogramsChange={(v) => setJobField(index, 'unloading_weight_kg', v)} />
+                        </div>
                         <Field type="number" step="0.01" label="น้ำหนักหิน (ข้อมูลเดิม)" hint="เว้นว่างได้" value={job.cargo_stone_weight} onChange={(v) => setJobField(index, 'cargo_stone_weight', v)} suffix="ตัน" />
                         <Field type="number" step="0.01" label="น้ำหนักไม้สับ (ข้อมูลเดิม)" hint="เว้นว่างได้" value={job.cargo_sand_weight} onChange={(v) => setJobField(index, 'cargo_sand_weight', v)} suffix="ตัน" />
 
@@ -1169,6 +1173,27 @@ function SmartTimeField({ label, value, onChange, required = false, hint = '', c
       {hint && <p className="form-field-hint hint">{hint}</p>}
     </label>
   );
+}
+
+// Display tonnes in the form but preserve kilograms in the existing API/database.
+// Keep a local input string so typing "30." or "30.5" does not lose the decimal point.
+function TonField({ label, hint, kilograms, onKilogramsChange }) {
+  const asTonString = (kg) => kg === '' || kg === null || kg === undefined
+    ? '' : String(Math.round((Number(kg) / 1000) * 1000000) / 1000000);
+  const [tonnes, setTonnes] = useState(() => asTonString(kilograms));
+  useEffect(() => {
+    const external = asTonString(kilograms);
+    // Preserve in-progress decimals; only sync when the underlying weight changed externally.
+    if ((tonnes === '' && external === '') || (tonnes !== '' && external !== '' && Number(tonnes) === Number(external))) return;
+    setTonnes(external);
+  }, [kilograms]);
+  return <Field type="number" step="0.001" label={label} hint={hint} suffix="ตัน"
+    value={tonnes} onChange={(raw) => {
+      setTonnes(raw);
+      if (raw.trim() === '') { onKilogramsChange(''); return; }
+      const parsed = Number(raw.replace(/,/g, ''));
+      if (Number.isFinite(parsed) && parsed >= 0) onKilogramsChange(String(Math.round(parsed * 1000000) / 1000));
+    }} />;
 }
 
 function Field({ label, value, onChange, type = 'text', placeholder = '', suffix = '', required = false, hint = '', listId = '', step = '', className = '' }) {

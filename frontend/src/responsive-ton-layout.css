@@ -1,0 +1,13 @@
+/* Two useful fields per row on phones without squashing long address fields. */
+.app-form-card .kw-paired-inputs {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;min-width:0!important;width:100%!important;}
+.app-form-card .kw-paired-inputs>*{min-width:0!important;width:100%!important;max-width:100%!important;}
+.app-form-card .kw-paired-inputs .input{min-width:0!important;width:100%!important;padding-left:10px!important;padding-right:42px!important;font-size:16px!important;}
+.app-form-card .kw-paired-inputs .field-suffix{right:9px!important;font-size:12px!important;}
+.app-form-card .kw-paired-inputs .form-field-label{font-size:13px!important;line-height:1.5!important;overflow-wrap:anywhere;}
+.app-form-card .kw-paired-inputs .form-field-hint{font-size:11px!important;line-height:1.4!important;}
+@media (min-width:360px) and (max-width:640px){
+ .app-form-card .kw-job-cost-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;}
+ .app-form-card .kw-job-cost-grid .input{font-size:16px!important;padding-inline:10px 39px!important;min-width:0!important;}
+ .app-form-card .kw-job-cost-grid .field-suffix{right:8px!important;}
+}
+@media(max-width:359px){.app-form-card .kw-paired-inputs{grid-template-columns:minmax(0,1fr)!important;}.app-form-card .kw-job-cost-grid{grid-template-columns:minmax(0,1fr)!important;}}

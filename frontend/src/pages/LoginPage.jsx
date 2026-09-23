@@ -57,7 +57,7 @@ export default function LoginPage() {
                 <BrandMark className="h-20 w-20 rounded-[1.4rem] text-sm tracking-[0.28em]" />
               </div>
               <span className="heng-kicker">ขวัญใจดาวทองขนส่ง สำหรับพนักงานและผู้ดูแล</span>
-              <h2 className="mt-3 text-3xl font-black tracking-tight text-stone-950">ยินดีต้อนรับกลับ</h2>
+              <h2 className="mt-3 text-3xl font-black tracking-tight text-stone-950">ยินดีต้อนรับเข้าสู่ระบบ</h2>
               <p className="mt-2 text-sm font-semibold leading-6 text-stone-500">เข้าสู่ระบบเพื่อเริ่มบันทึก ตรวจสอบข้อมูล และออกใบสรุปรายการของ ขวัญใจดาวทองขนส่ง</p>
             </div>
 

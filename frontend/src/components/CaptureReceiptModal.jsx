@@ -86,7 +86,7 @@ function totalIncomeValue(row) {
 
 function kgText(value) {
   const kg = parseDecimal(value, 0);
-  return kg > 0 ? `${number(kg, Number.isInteger(kg) ? 0 : 2)} กิโลกรัม` : '-';
+  return kg > 0 ? `${number(kg / 1000, 3)} ตัน` : '-';
 }
 
 function meterText(value) {
@@ -140,13 +140,13 @@ function buildReadyMeta(row) {
   const distance = parseDecimal(row?.distance_km, 0);
   if (distance > 0) return `[ระยะทาง ${number(distance, 0)} กม.]`;
   const weight = parseDecimal(row?.loading_weight_kg, 0);
-  if (weight > 0) return `[ต้นทาง ${number(weight, 0)} กิโลกรัม]`;
+  if (weight > 0) return `[ต้นทาง ${number(weight / 1000, 3)} ตัน]`;
   return '';
 }
 
 function buildUnloadMeta(row) {
   const weight = parseDecimal(row?.unloading_weight_kg, 0);
-  return weight > 0 ? `[ปลายทาง ${number(weight, 0)} กิโลกรัม]` : '';
+  return weight > 0 ? `[ปลายทาง ${number(weight / 1000, 3)} ตัน]` : '';
 }
 
 export default function CaptureReceiptModal({ row, onClose }) {

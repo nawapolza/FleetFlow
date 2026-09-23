@@ -96,7 +96,7 @@ function totalIncomeValue(row) {
 
 function kgText(value) {
   const kg = parseDecimal(value, 0);
-  return kg > 0 ? `${number(kg, Number.isInteger(kg) ? 0 : 2)} กิโลกรัม` : '-';
+  return kg > 0 ? `${number(kg / 1000, 3)} ตัน` : '-';
 }
 
 function routePlace(value, fallback) {

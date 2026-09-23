@@ -102,6 +102,7 @@ const DEFAULT_BRANCH = {
 
 let mongoClient = null;
 let mongoDb = null;
+let mongoDbPromise = null;
 
 function nowIso() {
   return new Date().toISOString();
@@ -430,6 +431,21 @@ async function ensureIndexes(db) {
     console.log('[users] Removed legacy unique email_1 index; username remains unique');
   }
 
+  // Old database versions stored vehicles.plate, but the current application
+  // writes vehicles.plate_no. A unique index on the OLD optional plate field
+  // treats every missing/null value as a duplicate and breaks the second car.
+  // Only remove the exact obsolete index; do not touch vehicle records or
+  // indexes on plate_no, which is the actual application field.
+  const vehicleCollection = db.collection('vehicles');
+  const vehicleIndexes = await vehicleCollection.indexes();
+  const obsoletePlateIndex = vehicleIndexes.find((index) =>
+    index.unique === true && index.key?.plate === 1 &&
+    Object.keys(index.key).length === 1 && index.name !== '_id_');
+  if (obsoletePlateIndex) {
+    await vehicleCollection.dropIndex(obsoletePlateIndex.name);
+    console.log(`[vehicles] Removed obsolete unique index ${obsoletePlateIndex.name} on optional field plate`);
+  }
+
   await Promise.all([
     db.collection('branches').createIndex({ code: 1 }, { unique: true }),
     db.collection('branches').createIndex({ is_active: 1, is_default: -1 }),
@@ -480,6 +496,26 @@ async function ensureIndexes(db) {
     { $set: { ...defaultBranch, updated_at: nowIso() } },
   );
 
+  // Protect new active vehicles against concurrent duplicate registrations.
+  // Historical duplicate records are NOT removed or modified automatically.
+  // If legacy duplicates prevent the new index from being created, continue
+  // serving data and log a warning so an owner can reconcile those records.
+  try {
+    await vehicleCollection.createIndex(
+      { branch_id: 1, plate_no: 1 },
+      { name: 'unique_active_branch_plate_no_v2', unique: true,
+        partialFilterExpression: {
+          branch_id: { $type: 'string' },
+          plate_no: { $type: 'string' },
+          is_active: 1,
+        } },
+    );
+  } catch (error) {
+    if (error.code === 11000 || error.code === 85 || error.code === 86) {
+      console.warn('[vehicles] Existing duplicate plates or index conflict; unique active-plate index was not created. Review historical vehicle records.', error.message);
+    } else throw error;
+  }
+
   const branches = await db.collection('branches').find({ is_active: { $ne: 0 } }).toArray();
   for (const branchDoc of branches) {
     const branch = branchFields(mongoToPlain(branchDoc));
@@ -522,12 +558,25 @@ async function ensureIndexes(db) {
 
 async function getDb() {
   if (mongoDb) return mongoDb;
+  if (mongoDbPromise) return mongoDbPromise;
   if (!config.mongodb.uri) throw new Error('MONGODB_URI is not set');
-  mongoClient = new MongoClient(config.mongodb.uri, { serverSelectionTimeoutMS: 10000 });
-  await mongoClient.connect();
-  mongoDb = mongoClient.db(config.mongodb.db);
-  await ensureIndexes(mongoDb);
-  return mongoDb;
+  // The first simultaneous API calls share the same initialization/migration.
+  mongoDbPromise = (async () => {
+    const client = new MongoClient(config.mongodb.uri, { serverSelectionTimeoutMS: 10000 });
+    try {
+      await client.connect();
+      const db = client.db(config.mongodb.db);
+      await ensureIndexes(db);
+      mongoClient = client;
+      mongoDb = db;
+      return db;
+    } catch (error) {
+      await client.close().catch(() => {});
+      throw error;
+    }
+  })();
+  try { return await mongoDbPromise; }
+  finally { mongoDbPromise = null; }
 }
 
 async function currentUser(req) {
@@ -621,7 +670,9 @@ async function resolveVehicleId(db, user, data, branch = null) {
   );
   if (duplicatePlate) return null;
 
-  const result = await db.collection('vehicles').insertOne({
+  let result;
+  try {
+    result = await db.collection('vehicles').insertOne({
     ...branchFields(branch || {}),
     user_id: vehicleUserId,
     plate_no: plate,
@@ -631,7 +682,14 @@ async function resolveVehicleId(db, user, data, branch = null) {
     is_active: 1,
     created_at: nowIso(),
     updated_at: nowIso(),
-  });
+    });
+  } catch (error) {
+    if (error.code !== 11000) throw error;
+    // Another request may have created the same plate in parallel.
+    const concurrent = await db.collection('vehicles').findOne(existingFilter, { projection: { _id: 1 } });
+    if (concurrent) return String(concurrent._id);
+    throw error;
+  }
   return String(result.insertedId);
 }
 
@@ -3004,9 +3062,22 @@ router.patch('/notifications/:id/read', requireAuth, requireOwner, asyncHandler(
 app.use('/', router);
 
 app.use((err, _req, res, _next) => {
+  // Do not leak MongoDB collection/index names or raw stack traces to users.
+  // Pre-checks are friendly, while unique indexes are the final race-safe gate.
+  if (err?.code === 11000) {
+    console.warn('[database] Duplicate-key conflict', { keyPattern: err.keyPattern });
+    const key = err.keyPattern || {};
+    const message = key.plate_no || key.plate
+      ? 'ทะเบียนรถนี้ถูกใช้แล้ว กรุณาตรวจสอบทะเบียนรถหรือเลือกคันที่มีอยู่'
+      : key.username ? 'ชื่อผู้ใช้นี้ถูกใช้แล้ว กรุณาเปลี่ยนชื่อผู้ใช้'
+      : key.code ? 'รหัสนี้มีอยู่แล้ว กรุณาใช้รหัสอื่น'
+      : 'ข้อมูลนี้มีอยู่แล้ว กรุณาตรวจสอบรายการก่อนบันทึกอีกครั้ง';
+    return jsonResponse(res, { success: false, message }, 409);
+  }
   console.error(err);
-  const status = err.status || 500;
-  jsonResponse(res, { success: false, message: err.message || 'เกิดข้อผิดพลาดในระบบ' }, status);
+  const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 500 ? err.status : 500;
+  const message = status === 500 ? 'ระบบไม่สามารถบันทึกข้อมูลได้ กรุณาลองอีกครั้งหรือติดต่อผู้ดูแล' : err.message;
+  return jsonResponse(res, { success: false, message }, status);
 });
 
 httpServer.listen(config.port, () => {

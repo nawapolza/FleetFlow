@@ -1,5 +1,5 @@
 import { Car, Edit, Gauge, ShieldCheck, Trash2, UserRound } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api.js';
 import Loading from '../components/Loading.jsx';
 import BranchScopeBar from '../components/BranchScopeBar.jsx';
@@ -15,6 +15,8 @@ export default function VehiclesPage() {
   const [form, setForm] = useState(blank);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -34,10 +36,13 @@ export default function VehiclesPage() {
 
   async function submit(e) {
     e.preventDefault();
+    if (savingRef.current) return; // Prevent double taps from sending two writes.
     const rate = Number(String(form.fuel_efficiency_km_per_liter || '').replace(',', '.'));
     if (!Number.isFinite(rate) || rate <= 0) {
       return alertError('กรุณาตั้งอัตราประจำรถก่อนบันทึก เช่น รถหนัก 2.90 กม./ลิตร หรือรถคันอื่น 3.20 กม./ลิตร');
     }
+    savingRef.current = true;
+    setSaving(true);
     try {
       const payload = { ...form, fuel_efficiency_km_per_liter: rate.toFixed(2) };
       if (editing) await api.updateVehicle(editing.id, payload);
@@ -48,6 +53,9 @@ export default function VehiclesPage() {
       load(true);
     } catch (err) {
       alertError(err, 'บันทึกรถ/คนขับไม่ได้');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   }
 
@@ -125,7 +133,7 @@ export default function VehiclesPage() {
             <textarea className="input mt-1 min-h-[90px]" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="รายละเอียดเพิ่มเติม เช่น ประเภทรถ หรือหมายเหตุ" />
           </label>
           <div className="flex gap-2 md:col-span-4">
-            <button className="btn-primary flex-1 md:flex-none">{editing ? 'บันทึกการแก้ไข' : 'เพิ่มรถ/คนขับ'}</button>
+            <button disabled={saving} className="btn-primary flex-1 md:flex-none">{saving ? 'กำลังบันทึก...' : editing ? 'บันทึกการแก้ไข' : 'เพิ่มรถ/คนขับ'}</button>
             {editing && <button type="button" className="btn-soft" onClick={() => { setEditing(null); setForm(blank); }}>ยกเลิก</button>}
           </div>
         </div>
