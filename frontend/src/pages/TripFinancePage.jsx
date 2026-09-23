@@ -49,8 +49,11 @@ export default function TripFinancePage() {
   const [materialName, setMaterialName] = useState('');
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [materialOpen, setMaterialOpen] = useState(false);
+  const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
+  const [materialSearch, setMaterialSearch] = useState('');
   const [detail, setDetail] = useState(null);
   const seq = useRef(0);
+  const materialPickerRef = useRef(null);
 
   const load = useCallback(async () => {
     if (!activeBranchId) return;
@@ -68,6 +71,20 @@ export default function TripFinancePage() {
 
   useEffect(() => { load(); return () => { seq.current += 1; }; }, [load]);
   useEffect(() => { setPage(1); }, [step, search, period]);
+  useEffect(() => {
+    if (!materialPickerOpen) return undefined;
+    const handlePointerDown = event => {
+      if (materialPickerRef.current && !materialPickerRef.current.contains(event.target)) {
+        setMaterialPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [materialPickerOpen]);
 
   const vehicles = data?.vehicles || [];
   const trips = data?.trips || [];
@@ -79,6 +96,11 @@ export default function TripFinancePage() {
   const filteredPending = useMemo(() => pending.filter(row => !q || [row.date, row.plate_no, row.driver_name, row.origin_place, row.destination_place, row.suggested_material].join(' ').toLocaleLowerCase('th').includes(q)), [pending, q]);
   const filteredTrips = useMemo(() => trips.filter(row => !q || [row.date, row.plate_no, row.driver_name, row.material, row.origin_place, row.destination_place, row.reference].join(' ').toLocaleLowerCase('th').includes(q)), [trips, q]);
   const filteredSummary = useMemo(() => (data?.by_driver || []).filter(row => !q || [row.plate_no, row.driver_name].join(' ').toLocaleLowerCase('th').includes(q)), [data?.by_driver, q]);
+  const filteredMaterialOptions = useMemo(() => {
+    const keyword = materialSearch.trim().toLocaleLowerCase('th');
+    if (!keyword) return materials;
+    return materials.filter(row => (row.name || '').toLocaleLowerCase('th').includes(keyword));
+  }, [materials, materialSearch]);
 
   const currentRows = step === 1 ? filteredPending : step === 2 ? filteredTrips : filteredSummary;
   const pages = Math.max(1, Math.ceil(currentRows.length / PAGE_SIZE));
@@ -101,6 +123,10 @@ export default function TripFinancePage() {
       income_baht: '',
       note: '',
     });
+    setMaterialPickerOpen(false);
+    setMaterialSearch('');
+    setMaterialPickerOpen(false);
+    setMaterialSearch('');
     setStep(2);
     setTimeout(() => document.getElementById('driver-income-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 80);
   }
@@ -121,6 +147,11 @@ export default function TripFinancePage() {
   async function saveTrip(event) {
     event.preventDefault();
     if (!tripForm) return;
+    if (!tripForm.material) {
+      alertError(new Error('กรุณาเลือกวัสดุที่ขนก่อนบันทึก'), 'กรอกข้อมูลไม่ครบ');
+      setMaterialPickerOpen(true);
+      return;
+    }
     setSaving(true);
     try {
       if (editingTripId) await api.updateDriverTrip(editingTripId, tripForm);
@@ -213,10 +244,72 @@ export default function TripFinancePage() {
 
     {step === 2 && <>
       {tripForm && <section className="dw-panel dw-editor" id="driver-income-editor">
-        <header><div><span className="dw-step-tag">ขั้นตอน 2</span><h2>{editingTripId ? 'แก้ไขรายได้คนขับ' : 'คิดรายได้เที่ยวนี้'}</h2></div><button type="button" className="dw-close" onClick={() => { setTripForm(null); setEditingTripId(''); setSelectedPending(null); }}><X size={18}/></button></header>
+        <header><div><span className="dw-step-tag">ขั้นตอน 2</span><h2>{editingTripId ? 'แก้ไขรายได้คนขับ' : 'คิดรายได้เที่ยวนี้'}</h2></div><button type="button" className="dw-close" onClick={() => { setTripForm(null); setEditingTripId(''); setSelectedPending(null); setMaterialPickerOpen(false); setMaterialSearch(''); }}><X size={18}/></button></header>
         <div className="dw-source-strip"><Truck size={18}/><div><strong>{tripForm.plate_no || vehicles.find(v => v.id === tripForm.vehicle_id)?.plate_no || '-'}</strong><span>{tripForm.date} · {tripForm.driver_name || '-'}</span></div></div>
         <form className="dw-form" onSubmit={saveTrip}>
-          <label><span>วัสดุที่ขน *</span><select required value={tripForm.material} onChange={e => setTripForm(v => ({ ...v, material: e.target.value }))}><option value="">เลือกวัสดุ</option>{materials.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select></label>
+          <label>
+            <span>วัสดุที่ขน *</span>
+            <div className={`dw-material-select ${materialPickerOpen ? 'is-open' : ''}`} ref={materialPickerRef}>
+              <button
+                type="button"
+                className="dw-material-trigger"
+                onClick={() => setMaterialPickerOpen(v => !v)}
+                aria-expanded={materialPickerOpen}
+                aria-haspopup="listbox"
+              >
+                <span className="dw-material-trigger-copy">
+                  <small>เลือกจากรายการวัสดุในระบบ</small>
+                  <strong>{tripForm.material || 'เลือกวัสดุ'}</strong>
+                </span>
+                <span className="dw-material-trigger-meta">{materials.length} รายการ</span>
+              </button>
+              {materialPickerOpen && (
+                <div className="dw-material-dropdown">
+                  <div className="dw-material-searchbox">
+                    <Search size={16} />
+                    <input
+                      value={materialSearch}
+                      onChange={e => setMaterialSearch(e.target.value)}
+                      placeholder="ค้นหาวัสดุ เช่น ทราย หิน ดิน"
+                    />
+                  </div>
+                  <div className="dw-material-options" role="listbox">
+                    {filteredMaterialOptions.length ? filteredMaterialOptions.map(row => (
+                      <button
+                        type="button"
+                        key={row.id}
+                        className={tripForm.material === row.name ? 'is-selected' : ''}
+                        onClick={() => {
+                          setTripForm(v => ({ ...v, material: row.name }));
+                          setMaterialPickerOpen(false);
+                          setMaterialSearch('');
+                        }}
+                      >
+                        <span>
+                          <strong>{row.name}</strong>
+                          <small>แตะเพื่อเลือกใช้งานทันที</small>
+                        </span>
+                        {tripForm.material === row.name && <CheckCircle2 size={18} />}
+                      </button>
+                    )) : <div className="dw-material-empty">ไม่พบวัสดุที่ค้นหา</div>}
+                  </div>
+                  <div className="dw-material-dropdown-footer">
+                    <button
+                      type="button"
+                      className="dw-material-manage"
+                      onClick={() => {
+                        setMaterialPickerOpen(false);
+                        setMaterialSearch('');
+                        setMaterialOpen(true);
+                      }}
+                    >
+                      <Plus size={15} /> จัดการวัสดุ
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </label>
           <label><span>รายได้คนขับเที่ยวนี้ *</span><div className="dw-money"><input type="number" inputMode="decimal" min="0" step="0.01" required value={tripForm.income_baht} onChange={e => setTripForm(v => ({ ...v, income_baht: e.target.value }))} placeholder="0.00"/><b>บาท</b></div></label>
           <label><span>น้ำหนัก / จำนวน</span><input value={tripForm.quantity} onChange={e => setTripForm(v => ({ ...v, quantity: e.target.value }))} placeholder="เช่น 30 ตัน"/></label>
           <label><span>เลขที่ใบงาน</span><input value={tripForm.reference} onChange={e => setTripForm(v => ({ ...v, reference: e.target.value }))}/></label>
