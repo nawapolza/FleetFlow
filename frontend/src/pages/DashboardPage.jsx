@@ -18,6 +18,7 @@ import {
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import Loading from '../components/Loading.jsx';
+import MobileHome from '../components/MobileHome.jsx';
 import { useRealtime } from '../hooks/useRealtime.js';
 import { alertError, toastInfo } from '../utils/alerts.js';
 import { date, datetime, money, number, today } from '../utils/format.js';
@@ -83,6 +84,7 @@ export default function DashboardPage({ setPage }) {
 
   return (
     <div className="page-shell dashboard-page">
+      <MobileHome data={data} periodText={periodText} setPage={setPage} onRefresh={refresh} loading={loading} />
       <section className="dashboard-welcome">
         <div className="dashboard-welcome-copy">
           <img src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง" className="kw-dashboard-logo"/>
