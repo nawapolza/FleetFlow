@@ -39,6 +39,7 @@ async function verifyPassword(value, stored) {
 
 const { MongoClient, ObjectId } = require('mongodb');
 const config = require('./config');
+const { createCompatibleIndex } = require('./indexCompatibility');
 
 const app = express();
 const httpServer = http.createServer(app);
@@ -446,30 +447,32 @@ async function ensureIndexes(db) {
     console.log(`[vehicles] Removed obsolete unique index ${obsoletePlateIndex.name} on optional field plate`);
   }
 
+  // Reuse compatible legacy indexes instead of recreating them with different
+  // options (notably the existing users.username_1 unique+sparse index).
   await Promise.all([
-    db.collection('branches').createIndex({ code: 1 }, { unique: true }),
-    db.collection('branches').createIndex({ is_active: 1, is_default: -1 }),
-    db.collection('users').createIndex({ username: 1 }, { unique: true }),
-    db.collection('users').createIndex({ branch_id: 1, is_active: 1 }),
-    db.collection('deliveries').createIndex({ branch_id: 1, work_date: -1 }),
-    db.collection('deliveries').createIndex({ user_id: 1, work_date: -1 }),
-    db.collection('deliveries').createIndex({ vehicle_id: 1 }),
-    db.collection('deliveries').createIndex({ item_type: 1, fill_date: -1 }),
-    db.collection('deliveries').createIndex({ 'jobs.origin_place': 1 }),
-    db.collection('deliveries').createIndex({ 'jobs.destination_place': 1 }),
-    db.collection('vehicles').createIndex({ branch_id: 1, plate_no: 1 }),
-    db.collection('transport_ledger').createIndex({ branch_id: 1, date: -1, vehicle_id: 1 }),
-    db.collection('trip_finance').createIndex({ branch_id: 1, date: -1, vehicle_id: 1 }),
-    db.collection('vehicles').createIndex({ user_id: 1, plate_no: 1 }),
-    db.collection('notifications').createIndex({ branch_id: 1, created_at: -1 }),
-    db.collection('notifications').createIndex({ delivery_id: 1, created_at: -1 }),
-    db.collection('notifications').createIndex({ kind: 1, branch_id: 1, item_type: 1, is_read: 1, created_at: -1 }),
-    db.collection('stocks').createIndex({ branch_id: 1, item_type: 1 }, { unique: true }),
-    db.collection('stock_movements').createIndex({ branch_id: 1, item_type: 1, transaction_date: -1 }),
-    db.collection('stock_transactions').createIndex({ branch_id: 1, item_type: 1, transaction_date: -1 }),
-    db.collection('stock_audits').createIndex({ branch_id: 1, item_type: 1, audit_date: -1 }),
-    db.collection('stock_audits').createIndex({ created_at: -1 }),
-    db.collection('uploaded_files').createIndex({ created_at: -1 }),
+    createCompatibleIndex(db.collection('branches'), { code: 1 }, { unique: true }, 'branches'),
+    createCompatibleIndex(db.collection('branches'), { is_active: 1, is_default: -1 }, 'branches'),
+    createCompatibleIndex(db.collection('users'), { username: 1 }, { unique: true }, 'users'),
+    createCompatibleIndex(db.collection('users'), { branch_id: 1, is_active: 1 }, 'users'),
+    createCompatibleIndex(db.collection('deliveries'), { branch_id: 1, work_date: -1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('deliveries'), { user_id: 1, work_date: -1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('deliveries'), { vehicle_id: 1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('deliveries'), { item_type: 1, fill_date: -1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('deliveries'), { 'jobs.origin_place': 1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('deliveries'), { 'jobs.destination_place': 1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('vehicles'), { branch_id: 1, plate_no: 1 }, 'vehicles'),
+    createCompatibleIndex(db.collection('transport_ledger'), { branch_id: 1, date: -1, vehicle_id: 1 }, 'transport_ledger'),
+    createCompatibleIndex(db.collection('trip_finance'), { branch_id: 1, date: -1, vehicle_id: 1 }, 'trip_finance'),
+    createCompatibleIndex(db.collection('vehicles'), { user_id: 1, plate_no: 1 }, 'vehicles'),
+    createCompatibleIndex(db.collection('notifications'), { branch_id: 1, created_at: -1 }, 'notifications'),
+    createCompatibleIndex(db.collection('notifications'), { delivery_id: 1, created_at: -1 }, 'notifications'),
+    createCompatibleIndex(db.collection('notifications'), { kind: 1, branch_id: 1, item_type: 1, is_read: 1, created_at: -1 }, 'notifications'),
+    createCompatibleIndex(db.collection('stocks'), { branch_id: 1, item_type: 1 }, { unique: true }, 'stocks'),
+    createCompatibleIndex(db.collection('stock_movements'), { branch_id: 1, item_type: 1, transaction_date: -1 }, 'stock_movements'),
+    createCompatibleIndex(db.collection('stock_transactions'), { branch_id: 1, item_type: 1, transaction_date: -1 }, 'stock_transactions'),
+    createCompatibleIndex(db.collection('stock_audits'), { branch_id: 1, item_type: 1, audit_date: -1 }, 'stock_audits'),
+    createCompatibleIndex(db.collection('stock_audits'), { created_at: -1 }, 'stock_audits'),
+    createCompatibleIndex(db.collection('uploaded_files'), { created_at: -1 }, 'uploaded_files'),
   ]);
 
   const defaultBranchDoc = await ensureDefaultBranch(db);
