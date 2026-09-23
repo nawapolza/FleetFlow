@@ -367,8 +367,8 @@ export async function createReceiptImageBlob(row = {}) {
   drawText(ctx, '03   สรุปรายได้และค่าใช้จ่าย', 78, y, 800, { size: 31, weight: 950, color: red, maxLines: 1 });
   y += 53;
   const rows = [
-    ['ค่าเที่ยว', money(tripFee)], ['เบี้ยเลี้ยง', money(allowance)],
-    ['รายได้อื่น', money(otherIncome)], ['ค่าน้ำมันเติมจริง', money(amountValue(row))],
+    ['ค่าบรรทุก', money(tripFee)], ['ค่าหิน', money(allowance)],
+    ['ค่าทราย', money(otherIncome)], ['ค่าน้ำมันเติมจริง', money(amountValue(row))],
   ];
   rows.forEach(([label, value]) => {
     drawText(ctx, label, 94, y, 410, { size: 21, color: muted, maxLines: 1 });

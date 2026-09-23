@@ -368,9 +368,9 @@ export default function CaptureReceiptModal({ row, onClose }) {
 
                     <p className="mt-3 text-[11px] font-black text-slate-900">รายได้รวมทุกงาน</p>
                     <div className="mt-1.5 space-y-1.5">
-                      <SummaryBlueRow label="ค่าเที่ยวรวม" value={`${number(tripFee, 2)} บาท`} />
-                      <SummaryBlueRow label="เบี้ยเลี้ยงรวม" value={`${number(allowance, 2)} บาท`} />
-                      {otherIncome > 0 && <SummaryBlueRow label="รายได้อื่นรวม" value={`${number(otherIncome, 2)} บาท`} />}
+                      <SummaryBlueRow label="ค่าบรรทุกรวม" value={`${number(tripFee, 2)} บาท`} />
+                      <SummaryBlueRow label="ค่าหินรวม" value={`${number(allowance, 2)} บาท`} />
+                      {otherIncome > 0 && <SummaryBlueRow label="ค่าทรายรวม" value={`${number(otherIncome, 2)} บาท`} />}
                       <SummaryTotalRow label="รวมรายได้ทั้งหมด" value={`${number(totalIncome, 2)} บาท`} />
                     </div>
 

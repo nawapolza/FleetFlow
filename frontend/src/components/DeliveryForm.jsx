@@ -964,9 +964,9 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                             <div><p className="text-sm font-black text-emerald-950">รายได้งานที่ {index + 1}</p><p className="text-[11px] font-bold text-emerald-700">รวมอัตโนมัติ {money(jobIncome)}</p></div>
                           </div>
                           <div className="grid gap-3 md:grid-cols-2">
-                            <Field type="number" step="0.01" label="ค่าเที่ยว" value={job.trip_fee_baht} onChange={(v) => setJobField(index, 'trip_fee_baht', v)} suffix="บาท" />
-                            <Field type="number" step="0.01" label="เบี้ยเลี้ยง" value={job.allowance_baht} onChange={(v) => setJobField(index, 'allowance_baht', v)} suffix="บาท" />
-                            <Field type="number" step="0.01" label="รายได้อื่น" value={job.other_income_baht} onChange={(v) => setJobField(index, 'other_income_baht', v)} suffix="บาท" />
+                            <Field type="number" step="0.01" label="ค่าบรรทุก" value={job.trip_fee_baht} onChange={(v) => setJobField(index, 'trip_fee_baht', v)} suffix="บาท" />
+                            <Field type="number" step="0.01" label="ค่าหิน" value={job.allowance_baht} onChange={(v) => setJobField(index, 'allowance_baht', v)} suffix="บาท" />
+                            <Field type="number" step="0.01" label="ค่าทราย" value={job.other_income_baht} onChange={(v) => setJobField(index, 'other_income_baht', v)} suffix="บาท" />
                             <ReadOnlyField className="distance-result-auto" label="รวมรายได้งานนี้" value={money(jobIncome)} />
                             <Field label="ผู้จ่ายค่าแรง" value={job.wage_payer} onChange={(v) => setJobField(index, 'wage_payer', v)} />
                             <Select label="สถานะรายได้" value={job.payment_status} onChange={(v) => setJobField(index, 'payment_status', v)} options={[["pending", 'รอจ่าย / ไม่ระบุ'], ["paid", 'จ่ายแล้ว']]} />

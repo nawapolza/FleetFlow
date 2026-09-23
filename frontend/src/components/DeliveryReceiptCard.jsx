@@ -216,7 +216,7 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
         <div className="rf-invoice-footline"><span>ค่าใช้จ่ายน้ำมันจริง</span><strong>{money(displayAmountValue(row))}</strong></div>
       </section>
       <section className="rf-invoice-section rf-invoice-money"><div className="rf-invoice-section-head"><span>03</span><div><h3>สรุปรายได้งานขนส่ง</h3><p>รวมรายได้ของงานในรายการนี้</p></div></div>
-        <div className="rf-invoice-footline"><span>ค่าเที่ยว</span><strong>{money(tripFee)}</strong></div><div className="rf-invoice-footline"><span>เบี้ยเลี้ยง</span><strong>{money(allowance)}</strong></div><div className="rf-invoice-footline"><span>รายได้อื่น</span><strong>{money(otherIncome)}</strong></div>
+        <div className="rf-invoice-footline"><span>ค่าบรรทุก</span><strong>{money(tripFee)}</strong></div><div className="rf-invoice-footline"><span>ค่าหิน</span><strong>{money(allowance)}</strong></div><div className="rf-invoice-footline"><span>ค่าทราย</span><strong>{money(otherIncome)}</strong></div>
         <div className="rf-invoice-grand"><span>รวมรายได้</span><strong>{money(totalIncome)}</strong></div>
         <small className="rf-invoice-disclaimer">จำนวนเงินนี้เป็นรายได้งานขนส่ง ไม่ใช่กำไรสุทธิของรถ โปรดดูต้นทุนทั้งหมดในเมนูบัญชีขนส่ง</small>
       </section>
@@ -264,9 +264,9 @@ function JobDetailCard({ job, index }) {
         <Info label="วันที่บรรทุก / ลงของ" value={`${date(job.load_date)} / ${date(job.unload_date)}`} />
         <Info label="น้ำหนักต้นทาง" value={kgText(job.loading_weight_kg)} />
         <Info label="น้ำหนักปลายทาง" value={kgText(job.unloading_weight_kg)} />
-        <Info label="ค่าเที่ยว" value={money(job.trip_fee_baht)} />
-        <Info label="เบี้ยเลี้ยง" value={money(job.allowance_baht)} />
-        <Info label="รายได้อื่น" value={money(job.other_income_baht)} />
+        <Info label="ค่าบรรทุก" value={money(job.trip_fee_baht)} />
+        <Info label="ค่าหิน" value={money(job.allowance_baht)} />
+        <Info label="ค่าทราย" value={money(job.other_income_baht)} />
         <Info label="รวมรายได้งานนี้" value={money(jobIncomeValue(job))} />
         <Info label="ผู้จ่ายค่าแรง" value={job.wage_payer || '-'} />
         <Info label="สถานะรายได้" value={job.payment_status === 'paid' ? 'จ่ายแล้ว' : 'รอจ่าย / ไม่ระบุ'} />
