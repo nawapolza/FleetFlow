@@ -3,18 +3,25 @@ const USER_KEY = 'oilops_user';
 const BRANCH_KEY = 'oilops_active_branch_v62';
 
 function normalizeBaseUrl(url) {
-  const raw = url || import.meta.env.VITE_API_URL || '/api';
-  return String(raw).replace(/\/$/, '');
+  const raw = String(url || import.meta.env.VITE_API_URL || '/api').trim();
+  // The local Vite proxy is not available on a deployed Render Static Site.
+  if (import.meta.env.PROD && (!raw || raw === '/api' || raw.startsWith('/api/'))) {
+    return '/api'; // Requests below explain precisely how to configure Render.
+  }
+  return raw.replace(/\/+$/, '');
 }
 
 export const API_BASE_URL = normalizeBaseUrl();
 
 export function getApiOrigin() {
   if (API_BASE_URL.startsWith('/')) return window.location.origin;
-  return API_BASE_URL
-    .replace(/\/api\/?$/i, '')
-    .replace(/\/index\.php\/?$/i, '')
-    .replace(/\/$/, '');
+  return API_BASE_URL.replace(/\/api\/?$/i, '').replace(/\/index\.php\/?$/i, '').replace(/\/$/, '');
+}
+
+function configurationError() {
+  const err = new Error('เว็บไซต์ยังไม่ได้ตั้งค่า Backend: เปิด Render Static Site > Environment แล้วตั้ง VITE_API_URL เป็น URL ของ Backend Web Service (ไม่ใช่ URL หน้าเว็บ) จากนั้น Deploy เว็บไซต์ใหม่');
+  err.code = 'API_CONFIG';
+  return err;
 }
 
 export function getToken() {
@@ -55,20 +62,39 @@ function buildUrl(path) {
 }
 
 async function parseResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
   const text = await response.text();
   let data;
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch (_) {
-    data = { success: false, message: text || 'ไม่สามารถอ่านคำตอบจากเซิร์ฟเวอร์' };
+  try { data = text ? JSON.parse(text) : {}; }
+  catch (_) {
+    const err = new Error('เซิร์ฟเวอร์ส่งข้อมูลที่ไม่ใช่ API กลับมา กรุณาตรวจสอบค่า VITE_API_URL ว่าชี้ไปยัง Backend Web Service ของ Render');
+    err.code = 'INVALID_API_RESPONSE';
+    err.status = response.status;
+    throw err;
+  }
+  if (!contentType.includes('json') && !text.trim().startsWith('{') && !text.trim().startsWith('[')) {
+    const err = new Error('ไม่พบ API สำหรับเข้าสู่ระบบ กรุณาตรวจสอบการเชื่อมต่อ Backend');
+    err.code = 'INVALID_API_RESPONSE';
+    err.status = response.status;
+    throw err;
   }
   if (!response.ok || data.success === false) {
-    const err = new Error(data.message || `HTTP ${response.status}`);
+    const err = new Error(data.message || `เซิร์ฟเวอร์ตอบกลับ HTTP ${response.status}`);
     err.status = response.status;
+    err.code = data.code || 'API_ERROR';
     err.data = data;
     throw err;
   }
   return data;
+}
+
+async function fetchApi(url, options) {
+  try { return await fetch(url, options); }
+  catch (_) {
+    const err = new Error('เชื่อมต่อ Backend ไม่ได้ กรุณาตรวจสอบว่า Render Backend เปิดอยู่ ตั้ง VITE_API_URL ถูกต้อง และเพิ่มโดเมนเว็บไซต์ใน CORS_ALLOWED_ORIGINS');
+    err.code = 'NETWORK_ERROR';
+    throw err;
+  }
 }
 
 // A simultaneous identical GET shares one network request. Mutating methods are never deduplicated.
@@ -83,11 +109,14 @@ export function apiRequest(path, options = {}) {
     headers.set('Content-Type', 'application/json');
   }
   const method = String(options.method || 'GET').toUpperCase();
+  if (import.meta.env.PROD && API_BASE_URL.startsWith('/') && path.startsWith('/auth/')) {
+    return Promise.reject(configurationError());
+  }
   const requestUrl = buildUrl(path);
   const shareable = method === 'GET' && !options.signal && options.body === undefined;
   const requestKey = shareable ? `${requestUrl}|${token}|${branchId}` : null;
   if (requestKey && pendingReads.has(requestKey)) return pendingReads.get(requestKey);
-  const promise = fetch(requestUrl, {
+  const promise = fetchApi(requestUrl, {
     ...options,
     headers,
     body: options.body instanceof FormData ? options.body : options.body !== undefined ? JSON.stringify(options.body) : undefined,

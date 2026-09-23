@@ -17,9 +17,16 @@ export function AuthProvider({ children }) {
       setUser(res.user);
       setSession(getToken(), res.user);
       return res.user;
-    } catch (_) {
-      clearSession();
-      setUser(null);
+    } catch (err) {
+      // Only an explicit authentication rejection invalidates the saved login.
+      // A cold-starting Render service or offline MongoDB must not erase credentials.
+      if (err.status === 401 || err.status === 403) {
+        clearSession();
+        setUser(null);
+      } else {
+        setUser(null); // Do not display authenticated content until the session is verified.
+        console.warn('[auth] Could not refresh session; keeping token for retry:', err.code || err.status);
+      }
       return null;
     } finally {
       setLoading(false);

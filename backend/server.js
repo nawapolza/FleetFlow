@@ -1626,7 +1626,39 @@ app.use((req, _res, next) => {
   next();
 });
 
-app.get('/ping', (req, res) => jsonResponse(res, { success: true, message: 'pong', build: 'test-system-v1-pastel', time: nowIso() }));
+app.get('/ping', (req, res) => jsonResponse(res, { success: true, message: 'pong', build: 'kwanjai-auth-check', time: nowIso() }));
+// Public service-readiness probe, registered before MongoDB middleware.
+// Does not expose account data or database credentials.
+app.get('/health-ready', async (_req, res) => {
+  if (!config.mongodb.uri) return jsonResponse(res, { success: false, code: 'DB_NOT_CONFIGURED', message: 'ยังไม่ได้ตั้งค่า MONGODB_URI ใน Backend' }, 503);
+  try {
+    const db = await getDb();
+    await db.command({ ping: 1 });
+    return jsonResponse(res, { success: true, message: 'Backend และฐานข้อมูลพร้อมใช้งาน' });
+  } catch (err) {
+    console.error('[health-ready] Database not ready:', err.code || err.name, err.message);
+    // Distinguish connection problems from initialization/index migration errors.
+    // This is a read-only diagnostic probe; it does not reset indexes or users.
+    let connected = false;
+    const probeClient = new MongoClient(config.mongodb.uri, { serverSelectionTimeoutMS: 3500 });
+    try {
+      await probeClient.connect();
+      await probeClient.db(config.mongodb.db).command({ ping: 1 });
+      connected = true;
+    } catch (probeError) {
+      console.error('[health-ready] MongoDB connection probe:', probeError.code || probeError.name);
+    } finally {
+      await probeClient.close().catch(() => {});
+    }
+    return jsonResponse(res, {
+      success: false,
+      code: connected ? 'DB_INIT_FAILED' : 'DB_UNAVAILABLE',
+      message: connected
+        ? 'เชื่อมต่อ MongoDB ได้ แต่ขั้นตอนเตรียมฐานข้อมูลไม่สำเร็จ กรุณาตรวจสอบ Backend Logs และสิทธิ์จัดการดัชนี'
+        : 'Backend ยังเชื่อมต่อ MongoDB ไม่ได้ กรุณาตรวจสอบ Atlas, Environment และ Backend Logs',
+    }, 503);
+  }
+});
 
 app.use(asyncHandler(async (req, _res, next) => {
   req.db = await getDb();
@@ -1729,8 +1761,15 @@ router.post('/auth/admin-recovery', limitAdminRecovery, asyncHandler(async (req,
     }
     return jsonResponse(res, { success: true, message: 'สร้างผู้ดูแลแล้ว กรุณาเข้าสู่ระบบด้วยบัญชีใหม่' });
   }
-  if (!currentUsername) return jsonResponse(res, { success: false, message: 'กรอก Username ของแอดมินเดิมเพื่อรีเซ็ตบัญชี' }, 422);
-  const owner = await users.findOne({ username: currentUsername, role: 'owner', is_active: { $ne: 0 } });
+  // With exactly one active owner, the server-held recovery key is sufficient
+  // even when the owner no longer remembers their old username. With multiple
+  // owners, require an explicit original username to avoid resetting the wrong account.
+  if (!currentUsername && existingOwnerCount > 1) return jsonResponse(res, {
+    success: false, message: 'ระบบมีแอดมินหลายบัญชี กรุณากรอก Username แอดมินเดิมที่ต้องการกู้คืน',
+  }, 422);
+  const owner = currentUsername
+    ? await users.findOne({ username: currentUsername, role: 'owner', is_active: { $ne: 0 } })
+    : await users.findOne({ role: 'owner', is_active: { $ne: 0 } });
   if (!owner) return jsonResponse(res, { success: false, message: 'ไม่พบบัญชีแอดมินเดิมที่ระบุ' }, 404);
   if (duplicate && String(duplicate._id) !== String(owner._id)) {
     return jsonResponse(res, { success: false, message: 'Username ใหม่ถูกใช้แล้ว' }, 409);
@@ -3076,8 +3115,15 @@ app.use((err, _req, res, _next) => {
   }
   console.error(err);
   const status = Number.isInteger(err.status) && err.status >= 400 && err.status < 500 ? err.status : 500;
-  const message = status === 500 ? 'ระบบไม่สามารถบันทึกข้อมูลได้ กรุณาลองอีกครั้งหรือติดต่อผู้ดูแล' : err.message;
-  return jsonResponse(res, { success: false, message }, status);
+  const mongoUnavailable = status === 500 && (
+    !config.mongodb.uri || ['MongoServerSelectionError', 'MongoNetworkError', 'MongoNetworkTimeoutError', 'MongoTopologyClosedError'].includes(err?.name)
+  );
+  const dbNotConfigured = !config.mongodb.uri;
+  const code = mongoUnavailable ? (dbNotConfigured ? 'DB_NOT_CONFIGURED' : 'DB_UNAVAILABLE') : 'REQUEST_FAILED';
+  const message = dbNotConfigured ? 'Backend ยังไม่ได้ตั้งค่า MONGODB_URI กรุณาติดต่อผู้ดูแลระบบ'
+    : mongoUnavailable ? 'เซิร์ฟเวอร์ยังเชื่อมต่อฐานข้อมูลไม่ได้ กรุณาลองอีกครั้งหรือติดต่อผู้ดูแล'
+    : status === 500 ? 'เซิร์ฟเวอร์ขัดข้อง กรุณาติดต่อผู้ดูแลเพื่อตรวจสอบ Backend Logs' : err.message;
+  return jsonResponse(res, { success: false, code, message }, mongoUnavailable ? 503 : status);
 });
 
 httpServer.listen(config.port, () => {
