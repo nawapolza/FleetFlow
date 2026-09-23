@@ -8,7 +8,8 @@ import BrandMark from './BrandMark.jsx';
 import { alertError, confirmAction, toastInfo, toastSuccess } from '../utils/alerts.js';
 import { ITEM_TYPES, currentTime, money, number, parseDecimal, roundDecimal, today } from '../utils/format.js';
 
-const DRAFT_VERSION = 'oilops_delivery_draft_v60_fuel_control';
+const DRAFT_VERSION = 'kwanjai_delivery_draft_no_files_v2';
+const JOB_COST_FIELDS = [['sand_cost_baht', 'ค่าซื้อทราย'], ['stone_cost_baht', 'ค่าซื้อหิน'], ['fuel_cost_baht', 'ค่าน้ำมัน'], ['tire_cost_baht', 'ค่ายาง'], ['parts_cost_baht', 'ค่าอะไหล่'], ['mechanic_cost_baht', 'ค่าแรงช่างซ่อม'], ['driver_cost_baht', 'ค่าแรงคนขับ'], ['other_cost_baht', 'ค่าใช้จ่ายอื่น ๆ']];
 const DEVICE_KEY = 'oilops_device_id_v13';
 const DEVICE_RECORDER_KEY = 'oilops_device_recorder_name_v22';
 const IMAGE_UPLOAD_MAX_WIDTH = 1800;
@@ -37,6 +38,14 @@ function blankJob(overrides = {}) {
     allowance_baht: '',
     other_income_baht: '',
     total_income_baht: '',
+    sand_cost_baht: '',
+    stone_cost_baht: '',
+    fuel_cost_baht: '',
+    tire_cost_baht: '',
+    parts_cost_baht: '',
+    mechanic_cost_baht: '',
+    driver_cost_baht: '',
+    other_cost_baht: '',
     wage_payer: '',
     payment_status: 'pending',
     note: '',
@@ -108,7 +117,8 @@ function jobHasData(job = {}) {
     decimalNumber(job.cargo_sand_weight, 0) > 0 ||
     decimalNumber(job.trip_fee_baht, 0) > 0 ||
     decimalNumber(job.allowance_baht, 0) > 0 ||
-    decimalNumber(job.other_income_baht, 0) > 0
+    decimalNumber(job.other_income_baht, 0) > 0 ||
+    JOB_COST_FIELDS.some(([key]) => decimalNumber(job[key], 0) > 0)
   );
 }
 
@@ -184,6 +194,9 @@ function normalizedJobsForSubmit(jobs = []) {
         allowance_baht: allowance,
         other_income_baht: otherIncome,
         total_income_baht: roundMoneyLike(tripFee + allowance + otherIncome, 2),
+        ...Object.fromEntries(JOB_COST_FIELDS.map(([key]) => [key, roundMoneyLike(Math.max(0, decimalNumber(job[key], 0)), 2)])),
+        total_expense_baht: roundMoneyLike(JOB_COST_FIELDS.reduce((sum, [key]) => sum + Math.max(0, decimalNumber(job[key], 0)), 0), 2),
+        profit_baht: roundMoneyLike(tripFee + allowance + otherIncome - JOB_COST_FIELDS.reduce((sum, [key]) => sum + Math.max(0, decimalNumber(job[key], 0)), 0), 2),
         payment_status: job.payment_status || 'pending',
       };
     });
@@ -344,7 +357,8 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
   const { user } = useAuth();
   const { activeBranch } = useBranch();
   const [form, setForm] = useState(blank);
-  const [files, setFiles] = useState({});
+  const files = {};
+  const setFiles = () => {};
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [savedReceipt, setSavedReceipt] = useState(null);
@@ -763,7 +777,7 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
     const selectedFileCount = Object.values(files || {}).reduce((sum, list) => sum + (Array.isArray(list) ? list.length : 0), 0);
     setLoading(true);
     try {
-      if (selectedFileCount > 0) toastInfo('กำลังปรับขนาดรูปภาพก่อนอัปโหลด...');
+
       saveDeviceRecorderName(form.recorder_name);
       const fd = await buildFormData();
       const savedRes = initialData?.id ? await api.updateDelivery(initialData.id, fd) : await api.createDelivery(fd);
@@ -819,11 +833,10 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
           <ProgressItem no="02" icon={Droplets} label="น้ำมันและราคา" onClick={() => scrollToSection('delivery-step-2')} />
           <ProgressItem no="03" icon={Clock3} label="วันและเวลา" onClick={() => scrollToSection('delivery-step-3')} />
           <ProgressItem no="04" icon={PackageCheck} label="งานและรายได้" onClick={() => scrollToSection('delivery-step-4')} />
-          <ProgressItem no="05" icon={Camera} label="รูปภาพแนบ" onClick={() => scrollToSection('delivery-step-5')} />
         </div>
 
         <div className="app-form-body">
-          <DraftNotice draftInfo={draftInfo} files={files} onClear={clearDraft} editing={Boolean(initialData?.id)} />
+          <DraftNotice draftInfo={draftInfo} files={{}} onClear={clearDraft} editing={Boolean(initialData?.id)} />
 
           <div className="form-content-stack">
             <Section no="1" id="delivery-step-1" icon={ClipboardList} title="รถและผู้ปฏิบัติงาน" subtitle="เลือกทะเบียนครั้งเดียว ระบบจะเชื่อมคนขับ เบอร์รถ และอัตราน้ำมันให้อัตโนมัติ">
@@ -966,6 +979,18 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                           </div>
                         </div>
 
+                        <div className="field-wide kw-job-costs">
+                          <div className="kw-job-costs-heading"><div><strong>ต้นทุนเที่ยวที่ {index + 1}</strong><span>กรอกค่าใช้จ่ายจริงแยกตามหมวดของเที่ยวนี้</span></div></div>
+                          <div className="kw-job-cost-grid">
+                            {JOB_COST_FIELDS.map(([key, label]) => <Field key={key} type="number" step="0.01" label={label} value={job[key] ?? ''} onChange={(v) => setJobField(index, key, v)} suffix="บาท" />)}
+                          </div>
+                          <div className="kw-job-result">
+                            <div><span>รายรับเที่ยวนี้</span><strong>{money(jobIncome)}</strong></div>
+                            <div><span>ต้นทุนรวม</span><strong>{money(JOB_COST_FIELDS.reduce((sum, [key]) => sum + Math.max(0, decimalNumber(job[key], 0)), 0))}</strong></div>
+                            <div className={jobIncome - JOB_COST_FIELDS.reduce((sum, [key]) => sum + Math.max(0, decimalNumber(job[key], 0)), 0) < 0 ? 'is-loss' : 'is-profit'}><span>กำไร / ขาดทุน</span><strong>{money(jobIncome - JOB_COST_FIELDS.reduce((sum, [key]) => sum + Math.max(0, decimalNumber(job[key], 0)), 0))}</strong></div>
+                          </div>
+                        </div>
+
                         <label className="form-field field-wide">
                           <span className="form-field-label label">หมายเหตุงานนี้</span>
                           <textarea className="input min-h-[80px] resize-y" value={job.note || ''} onChange={(e) => setJobField(index, 'note', e.target.value)} placeholder="รายละเอียดเพิ่มเติมเฉพาะงานนี้" />
@@ -981,13 +1006,6 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                   <Metric label="รายได้รวมทุกงาน" value={money(totalIncome)} strong />
                 </div>
               </div>
-            </Section>
-
-            <Section no="5" id="delivery-step-5" icon={Camera} title="เอกสารและรูปภาพแนบ" subtitle="เลือกรูปจากคลังหรือเปิดกล้องได้ทันที พร้อมเห็นตัวอย่างก่อนบันทึก">
-              <FileField label="รูปบิล" name="bill_photo" files={files} setFiles={setFiles} existing={initialData?.bill_photos || initialData?.bill_photo || initialData?.receipt_photo} />
-              <FileField label="รูปเอกสาร" name="document_photo" files={files} setFiles={setFiles} existing={initialData?.document_photos || initialData?.document_photo} />
-              <FileField label="รูปน้ำมัน / แอดบลู" name="oil_photo" files={files} setFiles={setFiles} existing={[...toExistingArray(initialData?.oil_photos || initialData?.oil_photo), ...toExistingArray(initialData?.adblue_photos || initialData?.adblue_photo)]} />
-              <FileField label="รูปบรรทุก" name="cargo_photo" files={files} setFiles={setFiles} existing={initialData?.cargo_photos || initialData?.cargo_photo} />
             </Section>
 
             <details className="group section-card supplemental-section overflow-hidden">

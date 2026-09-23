@@ -387,7 +387,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
 
               <details className="group overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-sm">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-xs font-black text-slate-800 sm:text-sm">
-                  <span>ดูรายละเอียดน้ำมันและรูปแนบ</span>
+                  <span>ดูรายละเอียดน้ำมัน</span>
                   <span className="text-[11px] text-blue-600 group-open:hidden">กดเปิด</span>
                   <span className="hidden text-[11px] text-blue-600 group-open:inline">กดปิด</span>
                 </summary>
@@ -396,7 +396,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
                     <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-red-600 text-white"><Route size={16} /></div>
                     <div>
                       <p className="text-xs font-black text-slate-900 sm:text-sm">รายละเอียดน้ำมัน</p>
-                      <p className="text-[10px] font-bold text-slate-400">ข้อมูลการใช้น้ำมันและเอกสารแนบ</p>
+                      <p className="text-[10px] font-bold text-slate-400">ข้อมูลการใช้น้ำมัน</p>
                     </div>
                   </div>
 
@@ -417,23 +417,9 @@ export default function CaptureReceiptModal({ row, onClose }) {
                       <MiniCheck icon={Gauge} label="หัวจ่ายก่อน" value={meterText(before)} />
                       <MiniCheck icon={Gauge} label="หัวจ่ายหลัง" value={meterText(after)} />
                       <MiniCheck icon={Route} label="จริง / มาตรฐาน" value={liters ? `${number(liters, 2)} / ${number(standardLiters, 2)} ลิตร` : '-'} />
-                      <MiniCheck icon={Camera} label="รูปแนบ" value={`${photos.length} ไฟล์`} />
                     </div>
                   </div>
 
-                  <div className="rounded-[1.1rem] border border-slate-100 bg-white p-2">
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <p className="text-xs font-black text-slate-800">รูปภาพแนบ</p>
-                      <p className="text-[10px] font-bold text-slate-400">แสดง 4 รูปแรก</p>
-                    </div>
-                    {photos.length ? (
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {photos.slice(0, 4).map((path, index) => <CaptureThumb key={`${path}-${index}`} path={path} index={index} />)}
-                      </div>
-                    ) : (
-                      <div className="flex h-16 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50 text-[11px] font-bold text-slate-300">ไม่มีรูปแนบ</div>
-                    )}
-                  </div>
                 </div>
               </details>
 

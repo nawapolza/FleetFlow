@@ -317,7 +317,7 @@ export async function createReceiptImageBlob(row = {}) {
   const rate = parseDecimal(row.expected_fuel_efficiency_km_per_liter || row.vehicle_fuel_efficiency_km_per_liter, 0);
   const canvas = document.createElement('canvas');
   canvas.width = 1080;
-  canvas.height = 1210 + jobs.length * 224;
+  canvas.height = 1240 + jobs.length * 250;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('อุปกรณ์ไม่รองรับการสร้างไฟล์รูปใบสรุปงาน');
   const ink = '#292329', red = '#b91c1c', muted = '#807377', border = '#f0dada';
@@ -337,7 +337,7 @@ export async function createReceiptImageBlob(row = {}) {
   drawText(ctx, '01   รายการขนส่ง', 78, y, 600, { size: 31, weight: 950, color: red, maxLines: 1 });
   y += 56;
   jobs.forEach((job, index) => {
-    ctx.fillStyle = '#fff'; roundedRect(ctx, 76, y, 930, 198, 18); ctx.fill();
+    ctx.fillStyle = '#fff'; roundedRect(ctx, 76, y, 930, 230, 18); ctx.fill();
     ctx.strokeStyle = border; ctx.lineWidth = 2; ctx.stroke();
     ctx.fillStyle = '#fff1f2'; roundedRect(ctx, 90, y + 15, 902, 44, 11); ctx.fill();
     drawText(ctx, `งาน ${index + 1} · ${safeText(job.cargo_name, 'ไม่ระบุวัสดุ')}`, 108, y + 22, 615, { size: 22, weight: 950, color: ink, maxLines: 1 });
@@ -346,7 +346,9 @@ export async function createReceiptImageBlob(row = {}) {
     drawText(ctx, `ปลายทาง ${safeText(job.destination_place)}`, 106, y + 105, 837, { size: 20, color: ink, maxLines: 1 });
     drawText(ctx, `น้ำหนักขึ้น ${kgText(job.loading_weight_kg)}     น้ำหนักลง ${kgText(job.unloading_weight_kg)}`, 106, y + 145, 620, { size: 18, color: muted, maxLines: 1 });
     drawText(ctx, money(jobIncomeValue(job)), 973, y + 144, 230, { size: 21, weight: 950, color: red, align: 'right', maxLines: 1 });
-    y += 224;
+    const expense = ['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((sum,key)=>sum+Math.max(0,parseDecimal(job[key],0)),0);
+    drawText(ctx, `ต้นทุน ${money(expense)}   ·   กำไร/ขาดทุน ${money(jobIncomeValue(job)-expense)}`, 106, y + 181, 840, { size: 20, weight: 900, color: red, maxLines: 1 });
+    y += 250;
   });
   drawText(ctx, '02   น้ำมันและระยะทาง', 78, y + 8, 700, { size: 31, weight: 950, color: red });
   y += 68;
@@ -377,8 +379,8 @@ export async function createReceiptImageBlob(row = {}) {
   drawText(ctx, 'รวมรายได้งานขนส่ง', 98, y + 25, 400, { size: 23, weight: 900, color: '#fff', maxLines: 1 });
   drawText(ctx, money(income), 970, y + 21, 440, { size: 29, weight: 950, color: '#fff', align: 'right', maxLines: 1 });
   y += 96;
-  drawText(ctx, 'หมายเหตุ: รายได้ไม่ใช่กำไรสุทธิ ดูรายจ่ายทั้งหมดได้ในเมนูบัญชีขนส่ง', 78, y, 920, { size: 17, color: muted, maxLines: 1 });
-  drawText(ctx, `ผู้บันทึก ${safeText(row.recorder_name || row.employee_name)}   •   เอกสารแนบ ${photoCount(row)} ไฟล์`, 78, y + 42, 920, { size: 17, color: muted, maxLines: 1 });
+  drawText(ctx, 'หมายเหตุ: กำไรต่อเที่ยวรวมเฉพาะต้นทุนที่กรอกในแต่ละงานเท่านั้น', 78, y, 920, { size: 17, color: muted, maxLines: 1 });
+  drawText(ctx, `ผู้บันทึก ${safeText(row.recorder_name || row.employee_name)}`, 78, y + 42, 920, { size: 17, color: muted, maxLines: 1 });
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('ไม่สามารถสร้างไฟล์ใบสรุปงานได้')), 'image/png'));
 }
 

@@ -43,26 +43,18 @@ export function alertError(error, fallback = 'เกิดข้อผิดพ�
   });
 }
 
-export function toastSuccess(title = 'บันทึกสำเร็จ') {
-  return Swal.fire({
-    showConfirmButton: false,
-    timer: 1750,
-    timerProgressBar: true,
-    allowOutsideClick: true,
-    backdrop: 'rgba(3, 12, 20, .58)',
-    title,
-    html: '<div class="heng-success-visual" aria-hidden="true"><span class="heng-success-orbit orbit-one"></span><span class="heng-success-orbit orbit-two"></span><span class="heng-success-core"><svg viewBox="0 0 24 24"><path d="M5 12.5 9.2 17 19 7"/></svg></span></div><p class="heng-success-message">ข้อมูลถูกบันทึกและซิงค์เข้าสู่ระบบเรียบร้อยแล้ว</p><div class="heng-success-scan"><i></i></div>',
-    customClass: {
-      popup: 'heng-success-popup',
-      title: 'heng-success-title',
-      htmlContainer: 'heng-success-content',
-      timerProgressBar: 'heng-success-timer',
-    },
-  });
+let lastToast = { title: '', at: 0 };
+function showToast(title, icon = 'success') {
+  const now = Date.now();
+  if (lastToast.title === title && now - lastToast.at < 1300) return Promise.resolve();
+  lastToast = { title, at: now };
+  return Toast.fire({ icon, title });
 }
-
+export function toastSuccess(title = 'บันทึกสำเร็จ') {
+  return showToast(title, 'success');
+}
 export function toastInfo(title = 'อัปเดตข้อมูลแล้ว') {
-  return Toast.fire({ icon: 'info', title });
+  return showToast(title, 'info');
 }
 
 export async function confirmDanger(title = 'ยืนยันการลบ', text = 'เมื่อลบแล้วจะย้อนกลับไม่ได้') {

@@ -720,6 +720,7 @@ function parseJsonArray(value) {
   }
 }
 
+const DELIVERY_JOB_COSTS = ['sand_cost_baht', 'stone_cost_baht', 'fuel_cost_baht', 'tire_cost_baht', 'parts_cost_baht', 'mechanic_cost_baht', 'driver_cost_baht', 'other_cost_baht'];
 function deliveryJobHasContent(job = {}) {
   return Boolean(
     cleanString(job.cargo_name) ||
@@ -736,7 +737,8 @@ function deliveryJobHasContent(job = {}) {
     toNumber(job.cargo_sand_weight, 0) > 0 ||
     toNumber(job.trip_fee_baht, 0) > 0 ||
     toNumber(job.allowance_baht, 0) > 0 ||
-    toNumber(job.other_income_baht, 0) > 0
+    toNumber(job.other_income_baht, 0) > 0 ||
+    DELIVERY_JOB_COSTS.some(key => toNumber(job[key], 0) > 0)
   );
 }
 
@@ -757,6 +759,7 @@ function legacyDeliveryJob(source = {}) {
     trip_fee_baht: round2(Math.max(0, toNumber(source.trip_fee_baht, 0))),
     allowance_baht: round2(Math.max(0, toNumber(source.allowance_baht, 0))),
     other_income_baht: round2(Math.max(0, toNumber(source.other_income_baht, 0))),
+    ...Object.fromEntries(DELIVERY_JOB_COSTS.map(key => [key, round2(Math.max(0, toNumber(source[key], 0)))])),
     total_income_baht: round2(
       Math.max(0, toNumber(source.trip_fee_baht, 0)) +
       Math.max(0, toNumber(source.allowance_baht, 0)) +
@@ -803,6 +806,9 @@ function normalizeDeliveryJobs(body = {}, existing = {}) {
         allowance_baht: allowance,
         other_income_baht: otherIncome,
         total_income_baht: round2(tripFee + allowance + otherIncome),
+        ...Object.fromEntries(DELIVERY_JOB_COSTS.map(key => [key, round2(Math.max(0, toNumber(job[key], 0)))])),
+        total_expense_baht: round2(DELIVERY_JOB_COSTS.reduce((sum, key) => sum + Math.max(0, toNumber(job[key], 0)), 0)),
+        profit_baht: round2(tripFee + allowance + otherIncome - DELIVERY_JOB_COSTS.reduce((sum, key) => sum + Math.max(0, toNumber(job[key], 0)), 0)),
         wage_payer: cleanString(job.wage_payer),
         payment_status: cleanString(job.payment_status) || 'pending',
         note: cleanString(job.note || job.job_note),
@@ -2492,6 +2498,33 @@ function tripSummary(rows,vehicles) {
   }
   return {total:all,by_vehicle:[...byVehicle.values()].sort((a,b)=>a.plate_no.localeCompare(b.plate_no,'th')),by_month:Object.entries(monthly).sort(([a],[b])=>b.localeCompare(a)).map(([month,values])=>({month,...values}))};
 }
+// Read-only finance summary from delivery jobs. Kept separate from manually-entered
+// trip_finance transactions to avoid silently counting the same trip twice.
+router.get('/delivery-job-finance', requireAuth, requireOwner, asyncHandler(async(req,res)=>{
+  const branch=await resolveBranchContext(req.db,req.user,req);
+  const period=String(req.query.period || today().slice(0,7));
+  if(!/^\d{4}(?:-(?:0[1-9]|1[0-2]))?$/.test(period)) return jsonResponse(res,{success:false,message:'รูปแบบช่วงเวลาต้องเป็น YYYY หรือ YYYY-MM'},422);
+  const rows=await req.db.collection('deliveries').find({branch_id:branch.id,work_date:{$gte:period.length===4?`${period}-01-01`:`${period}-01`,$lte:period.length===4?`${period}-12-31`:`${period}-31`}},{projection:{work_date:1,plate_no:1,vehicle_id:1,jobs:1,trip_fee_baht:1,allowance_baht:1,other_income_baht:1}}).toArray();
+  const summary=new Map();
+  const monthly=new Map();
+  const zeros=()=>({trips:0,income_satang:0,expense_satang:0,profit_satang:0});
+  const total=zeros();
+  for(const row of rows){
+    const jobs=Array.isArray(row.jobs)&&row.jobs.length?row.jobs:[];
+    for(const job of jobs){
+      const income=Math.round((toNumber(job.trip_fee_baht,0)+toNumber(job.allowance_baht,0)+toNumber(job.other_income_baht,0))*100);
+      const expense=Math.round(DELIVERY_JOB_COSTS.reduce((sum,key)=>sum+Math.max(0,toNumber(job[key],0)),0)*100);
+      const vehicleId=String(row.vehicle_id||row.plate_no||'-');
+      if(!summary.has(vehicleId))summary.set(vehicleId,{vehicle_id:vehicleId,plate_no:row.plate_no||'-',...zeros()});
+      const month=String(row.work_date||'').slice(0,7);
+      if(!monthly.has(month))monthly.set(month,{month,...zeros()});
+      for(const target of [total,summary.get(vehicleId),monthly.get(month)]){
+        target.trips++;target.income_satang+=income;target.expense_satang+=expense;target.profit_satang+=income-expense;
+      }
+    }
+  }
+  jsonResponse(res,{success:true,period,total,by_vehicle:[...summary.values()].sort((a,b)=>a.plate_no.localeCompare(b.plate_no,'th')),by_month:[...monthly.values()].sort((a,b)=>b.month.localeCompare(a.month))});
+}));
 router.get('/trip-finance',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
   const branch=await resolveBranchContext(req.db,req.user,req);
   const period=String(req.query.period || today().slice(0,7));

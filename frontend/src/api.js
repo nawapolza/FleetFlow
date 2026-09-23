@@ -120,6 +120,7 @@ export const api = {
   itemTypes: () => apiRequest('/item-types'),
   metaFields: () => apiRequest('/meta/fields'),
   deliveries: (params = {}) => apiRequest(`/deliveries${query(params)}`),
+  deliveryJobFinance: (period) => apiRequest(`/delivery-job-finance?period=${encodeURIComponent(period)}`),
   tripFinance: (period) => apiRequest(`/trip-finance${query({ period })}`),
   createTripFinance: (body) => apiRequest('/trip-finance', { method: 'POST', body }),
   updateTripFinance: (id, body) => apiRequest(`/trip-finance/${id}`, { method: 'PUT', body }),

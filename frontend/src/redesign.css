@@ -236,3 +236,26 @@ input[type=date],input[type=time],input[type=number] {min-width:0;max-width:100%
 .rf-wordmark{gap:10px!important;min-width:0!important}.rf-wordmark>span strong{font-size:clamp(12px,1.4vw,16px)!important;line-height:1.45!important;white-space:normal!important;overflow-wrap:anywhere!important}.rf-wordmark>span small{white-space:normal!important}.rf-main{max-width:100%;min-width:0;overflow-x:clip}.rf-main>*{max-width:100%}.rf-desktop-nav{flex-wrap:wrap!important;row-gap:6px!important}.rf-tab{white-space:nowrap}.rf-header-top{gap:8px}@media(max-width:760px){.kw-logo-header{width:42px;height:42px}.rf-wordmark>span strong{font-size:12px!important}.rf-wordmark>span small{font-size:10px!important}.rf-header-top{padding-inline:10px!important}.rf-main{padding-inline:12px!important}.rf-mobile-dock{padding-bottom:max(4px,env(safe-area-inset-bottom))!important}}
 
 .kw-dashboard-logo{width:84px;height:84px;object-fit:contain;background:white;border-radius:18px;padding:4px;border:1px solid #f6dddd;flex:none;float:right;margin-left:12px;margin-bottom:8px}.dashboard-welcome{gap:14px!important}@media(max-width:760px){.kw-dashboard-logo{width:64px;height:64px}.dashboard-welcome{align-items:start!important}}
+
+/* Consistent red/white interface for transport forms and reports */
+:root{--kw-red:#b91c1c;--kw-ink:#17212f;--kw-border:#f2cbcf}
+.app-form-card .section-card,.app-form-card .job-workspace,.receipt-card{border-color:#f3d7d9!important}
+.app-form-card .section-head{border-left-color:#b91c1c!important}
+.app-form-card .bg-blue-50,.app-form-card .bg-sky-50,.app-form-card .bg-emerald-50,.app-form-card .bg-indigo-50{background:#fff5f5!important}
+.app-form-card .text-blue-700,.app-form-card .text-blue-600,.app-form-card .text-emerald-700,.app-form-card .text-emerald-600,.app-form-card .text-sky-700{color:#b91c1c!important}
+.app-form-card .border-blue-100,.app-form-card .border-emerald-100,.app-form-card .border-sky-100{border-color:#f6d5d7!important}
+.app-form-card .bg-slate-950,.app-form-card .bg-blue-600,.app-form-card .bg-emerald-600{background:#b91c1c!important}
+.app-form-card .job-workspace-body{gap:18px!important}
+.kw-job-costs{border:1px solid #f0c6c9;background:#fffafa;border-radius:20px;padding:18px;min-width:0;display:grid;gap:16px}
+.kw-job-costs-heading strong{display:block;color:#9f1717;font-weight:900;font-size:1rem}
+.kw-job-costs-heading span{display:block;color:#6b7280;font-size:.8rem;margin-top:4px}
+.kw-job-cost-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}
+.kw-job-cost-grid>*{min-width:0}
+.kw-job-result{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.kw-job-result>div{border:1px solid #f2d5d8;background:white;border-radius:13px;padding:12px;min-width:0}
+.kw-job-result span{display:block;font-size:.75rem;color:#6b7280}
+.kw-job-result strong{display:block;overflow-wrap:anywhere;color:#991b1b;margin-top:5px;font-weight:900}
+.kw-job-result .is-profit{background:#fff1f2}.kw-job-result .is-loss{background:#7f1d1d}.kw-job-result .is-loss span,.kw-job-result .is-loss strong{color:white}
+.kw-invoice-job-finance{display:flex;flex-wrap:wrap;gap:8px 20px;padding:11px 14px;margin:8px 0;border-radius:12px;background:#fff1f2;color:#991b1b;font-size:.85rem}
+.kw-invoice-job-finance strong{font-weight:900}
+@media(max-width:640px){.kw-job-cost-grid{grid-template-columns:minmax(0,1fr)}.kw-job-result{grid-template-columns:minmax(0,1fr)}.app-form-card .job-workspace-body{gap:16px!important}.kw-job-costs{padding:14px}}

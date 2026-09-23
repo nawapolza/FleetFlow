@@ -5,6 +5,7 @@ import App from './App.jsx';
 import './index.css';
 import './redesign.css';
 import './mobile-home.css';
+import './accessible-update.css';
 
 function markDeviceMode() {
   try {

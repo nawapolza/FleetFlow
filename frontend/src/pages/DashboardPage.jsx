@@ -15,7 +15,7 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api.js';
 import Loading from '../components/Loading.jsx';
 import MobileHome from '../components/MobileHome.jsx';
@@ -41,6 +41,7 @@ export default function DashboardPage({ setPage }) {
   const [loading, setLoading] = useState(true);
   const [lastLoaded, setLastLoaded] = useState(null);
   const [filters, setFilters] = useState({ preset: 'month', from: startOfMonth(), to: today() });
+  const refreshTimer = useRef(null);
 
   const queryParams = useMemo(() => (filters.preset === 'all' ? {} : { from: filters.from, to: filters.to }), [filters]);
 
@@ -58,8 +59,13 @@ export default function DashboardPage({ setPage }) {
   }, [queryParams]);
 
   const { connected, lastEventAt } = useRealtime((payload) => {
-    if (['dashboard', 'deliveries', 'vehicles', 'users'].includes(payload?.kind)) load(true);
+    if (['dashboard', 'deliveries', 'vehicles', 'users'].includes(payload?.kind)) {
+      if (refreshTimer.current) window.clearTimeout(refreshTimer.current);
+      refreshTimer.current = window.setTimeout(() => { refreshTimer.current = null; load(true); }, 450);
+    }
   }, true);
+
+  useEffect(() => () => { if (refreshTimer.current) window.clearTimeout(refreshTimer.current); }, []);
 
   useEffect(() => {
     load();

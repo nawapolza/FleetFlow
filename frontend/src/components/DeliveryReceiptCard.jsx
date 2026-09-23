@@ -206,6 +206,7 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
             <div className="rf-invoice-job-top"><span>งาน {index + 1}</span><strong>{job.cargo_name || 'ไม่ระบุวัสดุ'}</strong><b>{number(job.distance_km, 2)} กม.</b></div>
             <div className="rf-invoice-route"><div><small>ต้นทาง</small><strong>{job.origin_place || '-'}</strong></div><div><small>ปลายทาง</small><strong>{job.destination_place || '-'}</strong></div></div>
             <div className="rf-invoice-job-bottom"><span>น้ำหนักขึ้น: {kgText(job.loading_weight_kg)}</span><span>น้ำหนักลง: {kgText(job.unloading_weight_kg)}</span><span>รายได้: {money(jobIncomeValue(job))}</span></div>
+            <div className="kw-invoice-job-finance"><span>ต้นทุน {money(['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((sum,key)=>sum+Number(job[key]||0),0))}</span><strong>กำไร/ขาดทุน {money(jobIncomeValue(job)-['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((sum,key)=>sum+Number(job[key]||0),0))}</strong></div>
           </div>)}
         </div>
       </section>
@@ -219,11 +220,9 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
         <div className="rf-invoice-grand"><span>รวมรายได้</span><strong>{money(totalIncome)}</strong></div>
         <small className="rf-invoice-disclaimer">จำนวนเงินนี้เป็นรายได้งานขนส่ง ไม่ใช่กำไรสุทธิของรถ โปรดดูต้นทุนทั้งหมดในเมนูบัญชีขนส่ง</small>
       </section>
-      <details className="rf-invoice-details"><summary>ข้อมูลเพิ่มเติมและไฟล์แนบ <ChevronDown size={18}/></summary><div className="rf-invoice-details-content">
+      <details className="rf-invoice-details"><summary>ข้อมูลเพิ่มเติม <ChevronDown size={18}/></summary><div className="rf-invoice-details-content">
         <div className="rf-invoice-extra"><Info label="ผู้บันทึก" value={row.recorder_name || row.employee_name || '-'} /><Info label="ผู้เติม" value={row.filler_name || '-'} /><Info label="หัวจ่ายก่อน" value={meterText(row.station_meter_before || row.odometer_before)} /><Info label="หัวจ่ายหลัง" value={meterText(row.station_meter_after || row.odometer_after)} /></div>
         {row.note && <p className="rf-invoice-note">หมายเหตุ: {row.note}</p>}
-        <div className="rf-invoice-files">{groups.map(group => <PhotoGroup key={group.label} label={group.label} paths={group.paths}/>)}</div>
-        <p className="rf-invoice-attachment-count">เอกสารแนบ {allPhotos.length} ไฟล์</p>
       </div></details>
     </div>
     <footer className="rf-invoice-footer"><span>ขวัญใจดาวทองขนส่ง · ใบสรุปงานขนส่ง</span><div className="rf-invoice-actions print:hidden">{onEdit && <button type="button" onClick={onEdit}><Edit size={16}/> แก้ไข</button>}{onDelete && <button type="button" onClick={onDelete}><Trash2 size={16}/> ลบรายการ</button>}</div></footer>
