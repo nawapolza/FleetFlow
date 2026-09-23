@@ -360,6 +360,15 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
   const files = {};
   const setFiles = () => {};
   const [vehicles, setVehicles] = useState([]);
+  const [transportMaterials,setTransportMaterials] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    const load = () => api.transportMaterials().then(r => { if (mounted) setTransportMaterials(r.data || []); }).catch(() => { if (mounted) setTransportMaterials([]); });
+    load();
+    const onFocus = () => { if (!document.hidden) load(); };
+    window.addEventListener('focus',onFocus);
+    return () => { mounted=false;window.removeEventListener('focus',onFocus); };
+  }, [activeBranch?.id]);
   const [loading, setLoading] = useState(false);
   const [savedReceipt, setSavedReceipt] = useState(null);
   const [draftInfo, setDraftInfo] = useState({ restored: false, savedAt: '', deviceId: '' });
@@ -943,7 +952,7 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                           <span><Link2 size={16} /> งานนี้เชื่อมกับทะเบียนและเรทน้ำมันด้านบนแล้ว</span>
                           <button type="button" onClick={() => useWorkDateForJob(index)}><CalendarDays size={15} /> ใช้วันที่รายการ</button>
                         </div>
-                        <Field className="field-featured" label="ประเภทสินค้า / ชื่องาน" hint="เช่น ทราย หิน หรือไม้สับ" value={job.cargo_name} onChange={(v) => setJobField(index, 'cargo_name', v)} placeholder="กรอกชื่องาน" />
+                        <label className="field-featured material-job-picker"><span>ประเภทสินค้า / ชื่องาน</span><select value={transportMaterials.some(m => m.name === job.cargo_name) ? job.cargo_name : (job.cargo_name ? '__legacy__' : '')} onChange={e => setJobField(index,'cargo_name', e.target.value)}><option value="">เลือกวัสดุ</option>{job.cargo_name && !transportMaterials.some(m => m.name === job.cargo_name) && <option value="__legacy__" disabled>{job.cargo_name} (รายการเดิม)</option>}{transportMaterials.map(m => <option key={m.id} value={m.name}>{m.name}</option>)}</select><small>รายการวัสดุเชื่อมกับหน้า Admin · วัสดุเดิมในเที่ยวงานย้อนหลังจะยังคงอยู่</small></label>
                         <Field className="field-featured" type="number" step="0.01" label="ระยะทางงานนี้" hint="ระบบจะรวมทุกงานอัตโนมัติ" value={job.distance_km} onChange={(v) => setJobField(index, 'distance_km', v)} suffix="กม." />
                         <div className="kw-paired-inputs field-wide">
                           <SmartDateField label="วันที่บรรทุก" hint="ไม่บังคับ" value={job.load_date} onChange={(v) => setJobField(index, 'load_date', v)} optional />

@@ -157,6 +157,7 @@ export const api = {
   createDriverAdvance: (body) => apiRequest('/driver-finance/advances',{method:'POST',body}),
   updateDriverAdvance: (id,body) => apiRequest(`/driver-finance/advances/${id}`,{method:'PUT',body}),
   deleteDriverAdvance: (id) => apiRequest(`/driver-finance/advances/${id}`,{method:'DELETE'}),
+  transportMaterials: () => apiRequest('/transport-materials'),
   createTransportMaterial: (body) => apiRequest('/driver-finance/materials',{method:'POST',body}),
   updateTransportMaterial: (id,body) => apiRequest(`/driver-finance/materials/${id}`,{method:'PUT',body}),
   deleteTransportMaterial: (id) => apiRequest(`/driver-finance/materials/${id}`,{method:'DELETE'}),

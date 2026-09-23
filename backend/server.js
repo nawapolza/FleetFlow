@@ -2833,6 +2833,13 @@ router.delete('/driver-finance/advances/:id',requireAuth,requireOwner,asyncHandl
   const result=await req.db.collection('driver_advances').deleteOne({_id:id,branch_id:branch.id});
   jsonResponse(res,{success:!!result.deletedCount,message:result.deletedCount?'':'ไม่พบรายการ'},result.deletedCount?200:404);
 }));
+// Shared transport-material catalog: visible to every logged-in employee in their own branch.
+router.get('/transport-materials',requireAuth,asyncHandler(async(req,res)=>{
+  const branch=await resolveBranchContext(req.db,req.user,req);
+  const rows=await req.db.collection('transport_materials').find({branch_id:branch.id,is_active:{$ne:0}},{sort:{name:1}}).toArray();
+  jsonResponse(res,{success:true,data:rows.map(mongoToPlain)});
+}));
+
 router.post('/driver-finance/materials',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
   const branch=await resolveBranchContext(req.db,req.user,req);
   const name=cleanString(req.body.name).slice(0,120);
@@ -2857,6 +2864,7 @@ router.delete('/driver-finance/materials/:id',requireAuth,requireOwner,asyncHand
   const branch=await resolveBranchContext(req.db,req.user,req),id=oidOrNull(req.params.id);
   if(!id)return jsonResponse(res,{success:false,message:'รหัสวัสดุไม่ถูกต้อง'},400);
   const result=await req.db.collection('transport_materials').updateOne({_id:id,branch_id:branch.id,is_active:{$ne:0}},{$set:{is_active:0,updated_at:nowIso()}});
+  if(result.matchedCount) emitDataChanged('transport-materials','archive',{branch_id:branch.id});
   jsonResponse(res,{success:!!result.matchedCount,message:result.matchedCount?'':'ไม่พบวัสดุ'},result.matchedCount?200:404);
 }));
 

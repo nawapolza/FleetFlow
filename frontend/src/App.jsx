@@ -17,6 +17,7 @@ import UsersPage from './pages/UsersPage.jsx';
 import VehiclesPage from './pages/VehiclesPage.jsx';
 import TransportLedgerPage from './pages/TransportLedgerPage.jsx';
 import TripFinancePage from './pages/TripFinancePage.jsx';
+import MaterialsPage from './pages/MaterialsPage.jsx';
 
 export default function App() {
   return (
@@ -69,6 +70,7 @@ function AppShell() {
       trips: <TripFinancePage key={`trips-${pageKey}`} />,
       ledger: <TransportLedgerPage key={`ledger-${pageKey}`} />,
       users: <UsersPage key={`users-${pageKey}`} />,
+      materials: <MaterialsPage key={`materials-${pageKey}`} />,
       vehicles: <VehiclesPage key={`vehicles-${pageKey}`} />,
       notifications: <NotificationsPage key={`notifications-${pageKey}`} />,
     };

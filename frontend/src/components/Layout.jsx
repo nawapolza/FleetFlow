@@ -1,6 +1,6 @@
 import {
   Activity, BarChart3, Bell, Building2, Calculator, ChevronDown, ClipboardList,
-  FileSpreadsheet, History, KeyRound, LogOut, Menu, ReceiptText, ShieldCheck,
+  FileSpreadsheet, History, KeyRound, LogOut, Menu, ReceiptText, Package, ShieldCheck,
   Truck, Users, WalletCards, X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -16,6 +16,7 @@ const navigation = [
   { key: 'trips', label: 'บัญชีคนขับ', icon: ReceiptText, ownerOnly: true },
   { key: 'ledger', label: 'บัญชีขนส่งเดิม', icon: WalletCards, ownerOnly: true },
   { key: 'reports', label: 'รายงานรายเดือน', icon: FileSpreadsheet, ownerOnly: true },
+  { key: 'materials', label: 'จัดการวัสดุ', icon: Package, ownerOnly: true },
   { key: 'vehicles', label: 'รถและคนขับ', icon: Truck, ownerOnly: true },
   { key: 'branches', label: 'สาขา', icon: Building2, ownerOnly: true },
   { key: 'users', label: 'พนักงาน', icon: Users, ownerOnly: true },
