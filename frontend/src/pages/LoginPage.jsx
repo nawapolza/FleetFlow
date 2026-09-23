@@ -1,4 +1,4 @@
-import { CheckCircle2, Eye, EyeOff, Leaf, LockKeyhole, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
+import { Eye, EyeOff, Leaf, LockKeyhole, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import BrandMark from '../components/BrandMark.jsx';
 import { useAuth } from '../contexts/AuthContext.jsx';
@@ -53,8 +53,8 @@ export default function LoginPage() {
         <section className="heng-login-form-panel">
           <div className="mx-auto w-full max-w-md">
             <div className="mb-8">
-              <div className="mb-5 md:hidden">
-                <BrandMark className="h-16 w-16 rounded-[1.4rem] text-sm tracking-[0.28em]" />
+              <div className="mb-5 flex justify-center md:hidden">
+                <BrandMark className="h-20 w-20 rounded-[1.4rem] text-sm tracking-[0.28em]" />
               </div>
               <span className="heng-kicker">ขวัญใจดาวทองขนส่ง สำหรับพนักงานและผู้ดูแล</span>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-stone-950">ยินดีต้อนรับกลับ</h2>
@@ -105,16 +105,6 @@ export default function LoginPage() {
                 {loading ? 'กำลังตรวจสอบข้อมูล...' : 'เข้าสู่ระบบ'}
               </button>
             </form>
-
-            <div className="mt-6 rounded-2xl border border-violet-100 bg-violet-50/80 p-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 shrink-0 text-violet-700" size={18} />
-                <div>
-                  <p className="text-sm font-black text-violet-950">พร้อมใช้งานบนทุกขนาดหน้าจอ</p>
-                  <p className="mt-1 text-xs font-bold leading-5 text-violet-900/70">ระบบจะแสดงเฉพาะเมนูที่บัญชีของคุณได้รับสิทธิ์ และใช้ธีมสีพาสเทลใหม่ให้อ่านง่ายขึ้น</p>
-                </div>
-              </div>
-            </div>
           </div>
         </section>
       </div>
