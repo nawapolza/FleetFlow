@@ -527,9 +527,11 @@ async function ensureIndexes(db) {
       await db.collection('stocks').updateOne(
         { branch_id: branch.branch_id, item_type: itemType },
         {
+          // Only INSERT-ONLY fields belong here. MongoDB rejects a path
+          // present in both $setOnInsert and $set (code 40), even on upsert.
+          // branch_id and item_type already come from the equality filter;
+          // other branch fields are written by $set below.
           $setOnInsert: {
-            ...branch,
-            item_type: itemType,
             balance_liters: 0,
             tank_name: defaults.tank_name,
             capacity_liters: defaults.capacity_liters,
