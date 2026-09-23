@@ -1,5 +1,6 @@
 import { Car, Edit, Gauge, ShieldCheck, Trash2, UserRound } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import CompactPager, { useCompactList } from '../components/CompactPager.jsx';
 import { api } from '../api.js';
 import Loading from '../components/Loading.jsx';
 import BranchScopeBar from '../components/BranchScopeBar.jsx';
@@ -15,6 +16,8 @@ export default function VehiclesPage() {
   const [form, setForm] = useState(blank);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const pager = useCompactList(vehicles, vehicle => [vehicle.plate_no, vehicle.vehicle_no, vehicle.driver_name, vehicle.employee_name, vehicle.description]);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
 
@@ -50,6 +53,7 @@ export default function VehiclesPage() {
       toastSuccess(editing ? 'แก้ไขรถ/คนขับแล้ว' : 'เพิ่มรถ/คนขับแล้ว');
       setForm(blank);
       setEditing(null);
+      setEditorOpen(false);
       load(true);
     } catch (err) {
       alertError(err, 'บันทึกรถ/คนขับไม่ได้');
@@ -60,7 +64,7 @@ export default function VehiclesPage() {
   }
 
   function startEdit(vehicle) {
-    setEditing(vehicle);
+    setEditing(vehicle);setEditorOpen(true);
     setForm({
       plate_no: vehicle.plate_no || '',
       vehicle_no: vehicle.vehicle_no || '',
@@ -97,9 +101,10 @@ export default function VehiclesPage() {
         <span className="page-orbit-signal">AUTO RATE</span>
       </div>
 
-      <BranchScopeBar label="ทะเบียนรถของสาขา" detail="รถ คนขับ และอัตราสิ้นเปลืองจะไม่ปะปนกับสาขาอื่น" />
+      <button type="button" className="btn-primary kw-add-btn" onClick={()=>{setEditing(null);setForm(blank);setEditorOpen(v=>!v);}}>{editorOpen?'ปิดฟอร์ม':'+ เพิ่มทะเบียนรถ'}</button>
+      <CompactPager state={pager} label="ค้นหาทะเบียนรถ คนขับ หรือเบอร์รถ"/>
 
-      <form onSubmit={submit} className="card p-4 md:p-5">
+      <form onSubmit={submit} className={`card p-4 md:p-5 ${editorOpen ? "" : "kw-editor-hidden"}`}>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-black"><Car size={20} /> {editing ? 'แก้ไขรถ / คนขับ' : 'เพิ่มรถ / คนขับ'}</h2>
         <div className="grid gap-3 md:grid-cols-5">
           <Field required label="ทะเบียนรถ" hint="เช่น 86-1234" value={form.plate_no} onChange={(v) => setForm({ ...form, plate_no: v })} />
@@ -139,30 +144,10 @@ export default function VehiclesPage() {
         </div>
       </form>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {vehicles.map((vehicle) => (
-          <div key={vehicle.id} className="card p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="truncate text-xl font-black text-slate-950">{vehicle.plate_no}</h3>
-                <p className="mt-1 text-sm font-bold text-slate-400">เบอร์รถ: {vehicle.vehicle_no || '-'}</p>
-              </div>
-              <div className="rounded-3xl bg-blue-50 p-3 text-blue-700"><Car size={22} /></div>
-            </div>
-            <div className="mt-4 grid gap-2 text-sm font-bold text-slate-500">
-              <p className="flex items-center gap-2"><UserRound size={15} /> คนขับ: {vehicle.driver_name || '-'}</p>
-              <p className="flex items-center gap-2"><Gauge size={15} /> อัตราประจำรถ: {Number(vehicle.fuel_efficiency_km_per_liter || 0) > 0 ? `${Number(vehicle.fuel_efficiency_km_per_liter).toFixed(2)} กม./ลิตร` : 'ยังไม่ตั้งค่า'}</p>
-              <p className="flex items-center gap-2"><ShieldCheck size={15} /> พนักงานที่ผูก: {vehicle.employee_name || '-'}</p>
-              <p className="line-clamp-2 rounded-2xl bg-slate-50 p-3">รายละเอียด: {vehicle.description || '-'}</p>
-            </div>
-            <div className="mt-4 flex gap-2">
-              <button className="btn-soft flex-1" onClick={() => startEdit(vehicle)}><Edit size={16} /> แก้ไข</button>
-              <button className="btn-danger flex-1" onClick={() => remove(vehicle)}><Trash2 size={16} /> ลบ</button>
-            </div>
-          </div>
-        ))}
-        {!vehicles.length && <div className="card p-8 text-center text-sm font-bold text-slate-400">ยังไม่มีรถ / คนขับ</div>}
-      </div>
+      <div className="kw-list-card"><div className="kw-list-scroll"><table className="kw-list-table"><thead><tr><th>ทะเบียนรถ</th><th>คนขับ</th><th>อัตรา กม./ลิตร</th><th>จัดการ</th></tr></thead><tbody>
+      {pager.visible.map(vehicle=><tr key={vehicle.id}><td><strong>{vehicle.plate_no}</strong><small>{vehicle.vehicle_no ? `เบอร์ ${vehicle.vehicle_no}` : ''}</small></td><td>{vehicle.driver_name||'-'}</td><td>{vehicle.fuel_efficiency_km_per_liter||'-'}</td><td><div className="kw-list-actions"><button type="button" onClick={()=>startEdit(vehicle)}>แก้ไข</button><button type="button" onClick={()=>remove(vehicle)}>ลบ</button></div></td></tr>)}
+      {!pager.filtered.length&&<tr><td colSpan={4}>ไม่พบรถ</td></tr>}
+      </tbody></table></div></div>
     </div>
   );
 }

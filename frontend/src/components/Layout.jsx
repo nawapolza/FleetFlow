@@ -72,7 +72,7 @@ export default function Layout({ page, setPage, children }) {
       </nav>
     </header>
     <main className="rf-main">
-      <div className="rf-page-marker"><span><CurrentIcon size={18}/> {current.label}</span><small>ขวัญใจดาวทองขนส่ง · {activeBranch?.name || 'ระบบขนส่ง'}</small></div>
+      <div className="rf-page-marker"><span><CurrentIcon size={18}/> {current.label}</span></div>
       {children}
     </main>
     <nav className="rf-mobile-dock" aria-label="เมนูด่วน">

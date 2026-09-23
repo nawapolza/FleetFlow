@@ -15,6 +15,7 @@ export default function DeliveriesPage() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({ q: '', from: '', to: '', limit: '200' });
   const [editing, setEditing] = useState(null);
+  const [preview, setPreview] = useState(null);
   const [page, setPage] = useState(1);
   const [filterOpen, setFilterOpen] = useState(false);
 
@@ -72,7 +73,7 @@ export default function DeliveriesPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div>
               <h1 className="text-2xl font-black tracking-tight md:text-3xl">รายการงานน้ำมัน</h1>
-              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-blue-100">ค้นหาใบสรุปย้อนหลังของสาขาที่เลือกแบบอ่านง่าย</p>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-red-100">ค้นหาใบสรุปย้อนหลังของสาขาที่เลือกแบบอ่านง่าย</p>
             </div>
             <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black backdrop-blur">
               ทั้งหมด {rows.length} รายการ · หน้า {page}/{totalPages}
@@ -110,9 +111,10 @@ export default function DeliveriesPage() {
 
       {loading ? <Loading /> : (
         <>
-          <div className="grid gap-4">
-            {pageRows.map((row) => <DeliveryReceiptCard key={row.id} row={row} onEdit={() => setEditing(row)} onDelete={() => remove(row)} />)}
-            {!rows.length && <div className="card-clean p-10 text-center text-sm font-bold text-slate-400">ไม่พบรายการ</div>}
+          <div className="kw-list-card"><div className="kw-list-scroll"><table className="kw-list-table"><thead><tr><th>วันที่ / ทะเบียน</th><th>คนขับ / งาน</th><th>จำนวนงาน</th><th>ดูบิล</th></tr></thead><tbody>
+            {pageRows.map(row => <tr key={row.id}><td><strong>{row.plate_no || '-'}</strong><small>{row.work_date || row.fill_date || '-'}</small></td><td>{row.driver_name || '-'}<small>{row.item_type || ''}</small></td><td>{row.jobs?.length || row.job_count || 1}</td><td><div className="kw-list-actions"><button type="button" onClick={()=>setPreview(row)}>ดูรายละเอียด</button></div></td></tr>)}
+            {!rows.length&&<tr><td colSpan={4}>ไม่พบรายการ</td></tr>}</tbody></table></div></div>
+            <div className="kw-hidden-old-list">
           </div>
 
           {rows.length > PAGE_SIZE && (
@@ -127,6 +129,7 @@ export default function DeliveriesPage() {
         </>
       )}
 
+      {preview && <div className="kw-modal-backdrop" role="presentation" onClick={()=>setPreview(null)}><section role="dialog" aria-modal="true" aria-label="รายละเอียดบิล" className="kw-modal-panel" onClick={event=>event.stopPropagation()}><header className="kw-modal-header"><strong>รายละเอียดบิล · {preview.plate_no || '-'}</strong><button type="button" className="kw-modal-close" onClick={()=>setPreview(null)}><X size={20}/> ปิด</button></header><div className="kw-modal-content"><DeliveryReceiptCard row={preview} onEdit={()=>{setPreview(null);setEditing(preview);}} onDelete={()=>{const row=preview;setPreview(null);remove(row);}}/></div></section></div>}
       {editing && (
         <div className="fixed inset-0 z-50 overflow-auto bg-slate-950/70 p-3 backdrop-blur md:p-8">
           <div className="mx-auto max-w-5xl">

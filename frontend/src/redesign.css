@@ -259,3 +259,30 @@ input[type=date],input[type=time],input[type=number] {min-width:0;max-width:100%
 .kw-invoice-job-finance{display:flex;flex-wrap:wrap;gap:8px 20px;padding:11px 14px;margin:8px 0;border-radius:12px;background:#fff1f2;color:#991b1b;font-size:.85rem}
 .kw-invoice-job-finance strong{font-weight:900}
 @media(max-width:640px){.kw-job-cost-grid{grid-template-columns:minmax(0,1fr)}.kw-job-result{grid-template-columns:minmax(0,1fr)}.app-form-card .job-workspace-body{gap:16px!important}.kw-job-costs{padding:14px}}
+
+/* Compact operations design / senior-friendly mobile tables */
+.kw-list-toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;padding:12px;background:#fff;border:1px solid #f1d4d6;border-radius:16px}
+.kw-list-search{min-width:170px;flex:1;display:flex;align-items:center;gap:8px;border:1px solid #e9ccd0;border-radius:12px;padding:0 12px;color:#991b1b}
+.kw-list-search input{width:100%;min-width:0;border:0;outline:0;min-height:42px;background:#fff;color:#17212f;font-size:15px}
+.kw-list-pages{display:flex;align-items:center;gap:7px;color:#991b1b;font-size:13px;font-weight:800}
+.kw-list-pages button{display:grid;place-items:center;width:40px;height:40px;background:#fff1f2;border:1px solid #f2c8cd;border-radius:11px;color:#991b1b}
+.kw-list-pages button:disabled{opacity:.35}
+.kw-list-card{background:#fff;border:1px solid #f1d4d6;border-radius:16px;overflow:hidden}
+.kw-list-scroll{width:100%;overflow-x:auto}
+.kw-list-table{border-collapse:collapse;width:100%;min-width:520px;font-size:14px;color:#263340}
+.kw-list-table th{text-align:left;background:#fff1f2;color:#991b1b;font-size:13px;font-weight:900;padding:13px 12px}
+.kw-list-table td{padding:12px;border-top:1px solid #f4e1e2;vertical-align:middle}
+.kw-list-table td strong{color:#171717;font-size:15px}.kw-list-table td small{display:block;color:#6b7280;font-size:12px;margin-top:3px}
+.kw-list-actions{display:flex;flex-wrap:wrap;gap:6px}.kw-list-actions button{padding:8px 10px;border:1px solid #f1c6cb;border-radius:9px;background:#fff6f6;color:#991b1b;font-weight:800;white-space:nowrap}
+.kw-add-btn{margin-top:12px;margin-bottom:4px;min-height:44px}.kw-editor-hidden{display:none!important}
+@media(max-width:640px){.rf-page-marker{display:none!important}.kw-list-toolbar{padding:9px;gap:8px}.kw-list-search{flex-basis:100%}.kw-list-pages{width:100%;justify-content:space-between}.kw-list-table{min-width:0}.kw-list-table th,.kw-list-table td{padding:10px 8px}.kw-list-table th:nth-child(3),.kw-list-table td:nth-child(3){display:none}.kw-list-table td strong{font-size:14px}.kw-list-actions button{font-size:12px;padding:7px 8px}.page-orbit{padding:14px!important}.page-orbit-code,.page-orbit-signal,.page-subtitle{display:none!important}.page-title{font-size:20px!important}.app-form-card .form-hero-summary{display:none!important}.app-form-card .app-form-hero{padding:12px!important}.app-form-card .form-progress-strip{gap:6px!important}.app-form-card .form-progress-item{padding:8px 5px!important}.app-form-card .form-progress-label{font-size:11px!important}}
+:root .bg-blue-50,:root .bg-green-50,:root .bg-emerald-50,:root .bg-sky-50,:root .bg-violet-50{background-color:#fff1f2!important}
+:root .text-blue-600,:root .text-blue-700,:root .text-blue-800,:root .text-green-700,:root .text-emerald-600,:root .text-emerald-700,:root .text-violet-700{color:#991b1b!important}
+:root .border-blue-100,:root .border-green-100,:root .border-emerald-100,:root .border-violet-100{border-color:#fecdd3!important}
+
+.kw-hidden-old-list{display:none!important}.kw-modal-backdrop{position:fixed;inset:0;z-index:150;background:rgba(21,18,19,.66);display:flex;align-items:center;justify-content:center;padding:12px}.kw-modal-panel{background:#fff;border-radius:20px;width:min(100%,850px);max-height:calc(100dvh - 24px);min-width:0;display:flex;flex-direction:column;box-shadow:0 24px 80px #2d0a0a55}.kw-modal-header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid #f8d3d3;color:#991b1b;font-size:16px;font-weight:900}.kw-modal-close{display:flex;gap:4px;align-items:center;padding:8px 10px;border-radius:10px;background:#fff1f2;color:#991b1b;font-weight:800}.kw-modal-content{overflow-y:auto;overscroll-behavior:contain;padding:12px}.kw-bill-detail{display:grid;gap:12px;color:#263340;font-size:15px}.kw-bill-detail>div:not(.kw-list-actions){display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #f4dddd;padding-bottom:8px}.kw-bill-detail strong{color:#991b1b;text-align:right}.kw-bill-detail h2{font-weight:900;font-size:19px;color:#991b1b}@media(max-width:640px){.kw-modal-backdrop{padding:5px}.kw-modal-panel{max-height:calc(100dvh - 10px);border-radius:15px}.kw-modal-content{padding:7px}.heng-login-form-panel .login-logo-card{width:7rem!important;height:7rem!important}.kd-employee-intro{display:none!important}}
+
+/* Legible, native date inputs; do not override browser date picker interactions */
+input[type="date"],input[type="month"],input[type="time"]{min-height:46px!important;border:1px solid #ecc7cc!important;border-radius:12px!important;background:#fff!important;color:#292525!important;font-size:15px!important;padding:9px 12px!important;color-scheme:light}
+input[type="date"]::-webkit-calendar-picker-indicator,input[type="month"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.85}
+@media(max-width:640px){.kd-home-hero{padding:18px 14px!important;min-height:0!important}.kd-home-logo-frame{width:130px!important;height:130px!important}.kd-home-hero h1{font-size:20px!important}.kd-home-action{min-height:70px!important;padding:10px!important}.kd-home-action-copy small{display:none!important}.ktf-hero{padding:16px!important}.ktf-hero img{width:64px!important;height:64px!important}.ktf-hero h1{font-size:22px!important}.ledger-hero{padding:16px!important}.ledger-hero p{display:none!important}}

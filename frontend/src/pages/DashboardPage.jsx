@@ -101,7 +101,7 @@ export default function DashboardPage({ setPage }) {
             </div>
             <span className={`dashboard-sync ${connected ? 'is-online' : 'is-offline'}`}>
               {connected ? <Wifi size={15} /> : <WifiOff size={15} />}
-              {connected ? 'ข้อมูล Realtime' : 'กดรีเฟรชเพื่ออัปเดต'}
+              {connected ? 'ข้อมูลล่าสุด' : 'กดรีเฟรชเพื่ออัปเดต'}
             </span>
           </div>
           <p>ติดตามงานขนส่ง ปริมาณน้ำมัน ค่าใช้จ่าย ระยะทาง และประสิทธิภาพของรถในหน้าจอเดียว</p>

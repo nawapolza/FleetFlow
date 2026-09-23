@@ -1,5 +1,6 @@
 import { Building2, CheckCircle2, Edit3, MapPin, Phone, Plus, Save, Trash2, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import CompactPager, { useCompactList } from '../components/CompactPager.jsx';
 import { api } from '../api.js';
 import { useBranch } from '../contexts/BranchContext.jsx';
 import { alertError, confirmDanger, toastSuccess } from '../utils/alerts.js';
@@ -12,14 +13,18 @@ export default function BranchesPage() {
   const [editingId, setEditingId] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const pager = useCompactList(branches, row => [row.name,row.code,row.address,row.phone]);
+  const [editorOpen,setEditorOpen] = useState(false);
   const activeCount = useMemo(() => branches.filter((row) => Number(row.is_active ?? 1) !== 0).length, [branches]);
 
   function startCreate() {
+    setEditorOpen(false);
     setEditingId('');
     setForm(blank);
   }
 
   function startEdit(row) {
+    setEditorOpen(true);
     setEditingId(row.id);
     setForm({
       name: row.name || '',
@@ -80,13 +85,15 @@ export default function BranchesPage() {
         <span className="page-orbit-signal">{activeCount} ACTIVE</span>
       </div>
 
+      <CompactPager state={pager} label="ค้นหาชื่อสาขา รหัส หรือเบอร์โทร"/>
+      <button type="button" className="btn-primary kw-add-btn" onClick={()=>{if(editorOpen)startCreate();else setEditorOpen(true);}}>{editorOpen?'ปิดฟอร์ม':'+ เพิ่มสาขา'}</button>
       <section className="branch-overview-strip card-clean">
         <div><Building2 size={22} /><span><small>สาขาที่ใช้งาน</small><strong>{activeCount} สาขา</strong></span></div>
         <div><CheckCircle2 size={22} /><span><small>สาขาที่กำลังดู</small><strong>{branches.find((row) => row.id === activeBranchId)?.name || '-'}</strong></span></div>
       </section>
 
       <div className="branch-layout-grid">
-        <form onSubmit={submit} className="card branch-editor-card">
+        <form onSubmit={submit} className={`card branch-editor-card ${editorOpen ? '' : 'kw-editor-hidden'}`}>
           <div className="branch-editor-head">
             <div><span><Building2 size={21} /></span><div><h2>{editingId ? 'แก้ไขข้อมูลสาขา' : 'เพิ่มสาขาใหม่'}</h2><p>เมื่อเพิ่มสาขา ระบบจะสร้างสต๊อกดีเซล น้ำมันเครื่อง และแอดบลูให้อัตโนมัติ</p></div></div>
             {editingId && <button type="button" onClick={startCreate} className="icon-button" aria-label="ยกเลิกแก้ไข"><X size={18} /></button>}
@@ -102,7 +109,7 @@ export default function BranchesPage() {
         </form>
 
         <section className="branch-card-list">
-          {branches.map((row) => {
+          {pager.visible.map((row) => {
             const active = Number(row.is_active ?? 1) !== 0;
             const selected = row.id === activeBranchId;
             return (

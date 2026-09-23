@@ -37,13 +37,13 @@ export default function NotificationsPage() {
           <h1 className="page-title">แจ้งเตือนระบบ</h1>
           <p className="page-subtitle">รวมสัญญาณที่ควรตรวจสอบและเหตุการณ์สำคัญไว้ในลำดับเดียว</p>
         </div>
-        <span className="page-orbit-signal">REALTIME</span>
+        <span className="page-orbit-signal">แจ้งเตือน</span>
       </div>
       <BranchScopeBar label="ศูนย์แจ้งเตือนของสาขา" detail="แจ้งเตือนสต๊อกต่ำและรายการผิดปกติถูกแยกตามสาขา" />
       <div className="grid gap-3 md:grid-cols-3">
         <div className="card p-5"><p className="text-sm font-black text-slate-500">แจ้งเตือนทั้งหมด</p><p className="mt-2 text-4xl font-black text-slate-950">{rows.length}</p></div>
         <div className="card p-5"><p className="text-sm font-black text-slate-500">ยังไม่อ่าน</p><p className="mt-2 text-4xl font-black text-red-600">{unread}</p></div>
-        <div className="card p-5"><p className="text-sm font-black text-slate-500">Realtime</p><p className="mt-2 text-lg font-black text-blue-700">เปิดใช้งาน</p></div>
+        <div className="card p-5"><p className="text-sm font-black text-slate-500">สถานะข้อมูล</p><p className="mt-2 text-lg font-black text-red-700">เปิดใช้งาน</p></div>
       </div>
       <div className="grid gap-3">
         {rows.map((row) => (

@@ -810,21 +810,11 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
                 <BrandMark compact className="h-full w-full rounded-[1.2rem] text-[11px] tracking-[0.28em]" />
               </div>
               <div className="min-w-0">
-                <div className="form-hero-eyebrow"><ShieldCheck size={14} /> บันทึกร่างอัตโนมัติ</div>
+                
                 <h2>{initialData?.id ? 'แก้ไขรายการ ขวัญใจดาวทองขนส่ง' : 'บันทึกรายการ ขวัญใจดาวทองขนส่ง'}</h2>
-                <p>ฟอร์มงานขนส่งโฉมใหม่ โทนพาสเทล เรียบหรู ทันสมัย และอ่านง่ายทั้งบนมือถือและเดสก์ท็อป</p>
+                <p>กรอกข้อมูลตามขั้นตอนด้านล่าง</p>
               </div>
             </div>
-          </div>
-
-          <div className="form-branch-badge"><Building2 size={18} /><span><small>รายการนี้จะบันทึกเข้าสาขา</small><strong>{activeBranch?.name || 'กำลังเลือกสาขา'}</strong></span><em>{activeBranch?.code || '-'}</em></div>
-
-          <div className="form-hero-summary" aria-label="สรุปข้อมูลที่กรอก">
-            <Metric label="ระยะทางรวมทุกงาน" value={effectiveDistance ? `${number(effectiveDistance, 2)} กม.` : '-'} />
-            <Metric label="จำนวนงาน" value={`${jobsSummary.count || 0} งาน`} />
-            <Metric label="ลิตรเติมจริง" value={effectiveLiters ? `${number(effectiveLiters, 2)} ลิตร` : '-'} />
-            <Metric label="ราคาต่อลิตร" value={decimalNumber(form.price_baht_per_liter, 0) ? `${number(form.price_baht_per_liter, 2)} บาท` : '-'} />
-            <Metric label="อัตราประจำรถ" value={expectedFuelEfficiency ? `${number(expectedFuelEfficiency, 2)} กม./ลิตร` : 'ยังไม่ตั้งค่า'} strong />
           </div>
         </header>
 
@@ -836,7 +826,7 @@ export default function DeliveryForm({ initialData = null, onSaved = null }) {
         </div>
 
         <div className="app-form-body">
-          <DraftNotice draftInfo={draftInfo} files={{}} onClear={clearDraft} editing={Boolean(initialData?.id)} />
+
 
           <div className="form-content-stack">
             <Section no="1" id="delivery-step-1" icon={ClipboardList} title="รถและผู้ปฏิบัติงาน" subtitle="เลือกทะเบียนครั้งเดียว ระบบจะเชื่อมคนขับ เบอร์รถ และอัตราน้ำมันให้อัตโนมัติ">

@@ -1,7 +1,6 @@
 import { Eye, EyeOff, Leaf, LockKeyhole, ShieldCheck, Sparkles, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import BrandMark from '../components/BrandMark.jsx';
-import { checkServiceStatus } from '../utils/serviceStatus.js';
 import { useAuth } from '../contexts/AuthContext.jsx';
 import { alertError } from '../utils/alerts.js';
 
@@ -10,9 +9,6 @@ export default function LoginPage() {
   const [form, setForm] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [checking, setChecking] = useState(false);
-  const [serviceMessage, setServiceMessage] = useState('');
-  async function checkConnection() { setChecking(true); try { setServiceMessage((await checkServiceStatus()).message); } finally { setChecking(false); } }
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -57,7 +53,7 @@ export default function LoginPage() {
           <div className="mx-auto w-full max-w-md">
             <div className="mb-8">
               <div className="mb-5 flex justify-center md:hidden">
-                <BrandMark className="h-20 w-20 rounded-[1.4rem] text-sm tracking-[0.28em]" />
+                <BrandMark className="h-28 w-28 rounded-[1.4rem] text-sm tracking-[0.28em]" />
               </div>
               <span className="heng-kicker">ขวัญใจดาวทองขนส่ง สำหรับพนักงานและผู้ดูแล</span>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-stone-950">ยินดีต้อนรับเข้าสู่ระบบ</h2>
@@ -108,8 +104,7 @@ export default function LoginPage() {
                 {loading ? 'กำลังตรวจสอบข้อมูล...' : 'เข้าสู่ระบบ'}
               </button>
             </form>
-            {serviceMessage && <p role="status" className="mt-3 rounded-xl border border-red-100 bg-red-50 p-3 text-sm font-semibold text-red-800">{serviceMessage}</p>}
-            <button type="button" onClick={checkConnection} disabled={checking || loading} className="mt-3 w-full rounded-xl border border-red-200 bg-white px-4 py-3 text-sm font-bold text-red-800">{checking ? 'กำลังตรวจสอบ...' : 'ตรวจสอบการเชื่อมต่อ'}</button>
+
           </div>
         </section>
       </div>
