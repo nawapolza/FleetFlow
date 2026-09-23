@@ -1,11 +1,11 @@
-import { ArrowDownRight, ArrowRight, CalendarDays, ClipboardList, FileBarChart3, History, ReceiptText, Route, Truck, WalletCards } from 'lucide-react';
+import { ArrowDownRight, ArrowRight, CalendarDays, ClipboardList, BarChart3, History, ReceiptText, Route, Truck, WalletCards } from 'lucide-react';
 import { date, money, number } from '../utils/format.js';
 
 const actions = [
   { key: 'quick', label: 'บันทึกงาน', detail: 'เริ่มเที่ยวใหม่', icon: ClipboardList, primary: true },
   { key: 'trips', label: 'บัญชีรายเที่ยว', detail: 'ต้นทุนและกำไร', icon: ReceiptText },
   { key: 'deliveries', label: 'งานย้อนหลัง', detail: 'รายการทั้งหมด', icon: History },
-  { key: 'reports', label: 'รายงาน', detail: 'สรุปรายเดือน', icon: FileBarChart3 },
+  { key: 'reports', label: 'รายงาน', detail: 'สรุปรายเดือน', icon: BarChart3 },
   { key: 'vehicles', label: 'รถและคนขับ', detail: 'จัดการข้อมูลรถ', icon: Truck },
   { key: 'ledger', label: 'บัญชีขนส่ง', detail: 'รับ–จ่าย', icon: WalletCards },
 ];
