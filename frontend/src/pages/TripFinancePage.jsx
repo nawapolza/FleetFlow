@@ -1,77 +1,138 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import CompactPager, { useCompactList } from '../components/CompactPager.jsx';
-import { CalendarDays, ChevronDown, Download, FileText, Pencil, Plus, ReceiptText, RotateCcw, Save, Trash2, Truck, Wallet, X } from 'lucide-react';
+import { CalendarDays, ClipboardList, Pencil, Plus, ReceiptText, Save, Search, Trash2, Truck, Wallet, X } from 'lucide-react';
 import { api } from '../api.js';
 import { useBranch } from '../contexts/BranchContext.jsx';
 import { alertError, confirmAction, toastSuccess } from '../utils/alerts.js';
-import './tripFinance.css';
+import CompactPager, { useCompactList } from '../components/CompactPager.jsx';
+import './driverIncome.css';
 
-const costs = [
-  ['sand_cost','ค่าซื้อทราย'],['stone_cost','ค่าซื้อหิน'],['fuel_cost','ค่าน้ำมัน'],['tire_cost','ค่ายาง'],
-  ['parts_cost','ค่าอะไหล่'],['mechanic_cost','ค่าแรงช่างซ่อม'],['driver_cost','ค่าแรงคนขับ'],['other_cost','ค่าใช้จ่ายอื่น ๆ'],
-];
-const money = value => (Number(value || 0)/100).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-const baht = value => Number(value || 0).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
-const currentDate = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const defaultForm = () => ({date:currentDate(),vehicle_id:'',material:'',quantity:'',origin_place:'',destination_place:'',distance_km:'',reference:'',note:'',income_baht:'',...Object.fromEntries(costs.map(([key])=>[key,'']))});
-function exportCsv(rows,period) {
-  const columns=[['date','วันที่'],['plate_no','ทะเบียน'],['material','วัสดุ'],['quantity','จำนวน'],['origin_place','ต้นทาง'],['destination_place','ปลายทาง'],['distance_km','ระยะทาง (กม.)'],['reference','เลขที่เอกสาร'],['income_satang','รายรับ (บาท)'],...costs.map(([key,label])=>[`${key}_satang`,`${label} (บาท)`]),['expense_satang','รายจ่ายรวม (บาท)'],['profit_satang','กำไร/ขาดทุน (บาท)'],['note','หมายเหตุ']];
-  const cell=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s=`'${s}`;return `"${s.replace(/"/g,'""')}"`;};
-  const lines=[columns.map(([,label])=>cell(label)).join(','),...rows.map(r=>columns.map(([key])=>cell(key.endsWith('_satang')?(Number(r[key]||0)/100).toFixed(2):r[key])).join(','))];
-  const url=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
-  const a=document.createElement('a');a.href=url;a.download=`kwanjai-trip-finance-${period}.csv`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-}
-function MoneyCard({label,value,kind}) {return <div className={`ktf-total ${kind}`}><span>{label}</span><strong>{money(value)} <small>บาท</small></strong></div>;}
-function Field({label,children,className=''}) {return <label className={`ktf-field ${className}`}><span>{label}</span>{children}</label>;}
+const today = () => new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const cash = n => (Number(n || 0) / 100).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const newTrip = () => ({date:today(),vehicle_id:'',driver_name:'',material:'',quantity:'',origin_place:'',destination_place:'',reference:'',income_baht:'',note:''});
+const newAdvance = () => ({date:today(),vehicle_id:'',driver_name:'',amount_baht:'',note:''});
+const toBaht = v => (Number(v||0)/100).toFixed(2);
+function Cell({label,children,wide=false}) {return <label className={`di-field ${wide?'di-wide':''}`}><span>{label}</span>{children}</label>;}
+function Value({label,value}) {return <div className="di-total"><span>{label}</span><strong>{cash(value)} บาท</strong></div>;}
+function OptionVehicles({vehicles}) {return <><option value="">เลือกทะเบียนรถ</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.plate_no}{v.driver_name?` · ${v.driver_name}`:''}</option>)}</>;}
+function RowButtons({onEdit,onRemove}) {return <div className="di-actions"><button type="button" onClick={onEdit} aria-label="แก้ไข"><Pencil size={16}/> แก้ไข</button><button type="button" onClick={onRemove} aria-label="ลบ"><Trash2 size={16}/> ลบ</button></div>;}
+
 export default function TripFinancePage(){
-  const {activeBranchId,activeBranch}=useBranch();
-  const [mode,setMode]=useState('month');const [period,setPeriod]=useState(currentDate().slice(0,7));
-  const [vehicleId,setVehicleId]=useState('all');const [data,setData]=useState(null);const [deliverySummary,setDeliverySummary]=useState(null);
-  const [loading,setLoading]=useState(false);const [saving,setSaving]=useState(false);
-  const [editing,setEditing]=useState('');const [form,setForm]=useState(defaultForm);
-  const editor=useRef(null);const loadSeq=useRef(0);
-  const load=useCallback(async()=>{if(!activeBranchId)return;const seq=++loadSeq.current;setLoading(true);try{const [result,jobResult]=await Promise.all([api.tripFinance(period),api.deliveryJobFinance(period)]);if(seq===loadSeq.current){setData(result);setDeliverySummary(jobResult);}}catch(err){if(seq===loadSeq.current)alertError(err,'โหลดบัญชีต่อเที่ยวไม่สำเร็จ');}finally{if(seq===loadSeq.current)setLoading(false);}},[activeBranchId,period]);
-  useEffect(()=>{load();return()=>{loadSeq.current++;};},[load]);
+  const {activeBranchId}=useBranch();
+  const [mode,setMode]=useState('month');
+  const [period,setPeriod]=useState(today().slice(0,7));
+  const [vehicleFilter,setVehicleFilter]=useState('all');
+  const [driverFilter,setDriverFilter]=useState('all');
+  const [data,setData]=useState(null);
+  const [busy,setBusy]=useState(false);
+  const [saving,setSaving]=useState(false);
+  const [panel,setPanel]=useState('trip');
+  const [trip,setTrip]=useState(newTrip);
+  const [advance,setAdvance]=useState(newAdvance);
+  const [materialName,setMaterialName]=useState('');
+  const [materialEdit,setMaterialEdit]=useState(null);
+  const [editing,setEditing]=useState(null);
+  const [preview,setPreview]=useState(null);
+  const seq=useRef(0),editor=useRef(null),submitBusy=useRef(false);
+  const load=useCallback(async()=>{
+    if(!activeBranchId)return;
+    const turn=++seq.current;setBusy(true);
+    try {const result=await api.driverFinance(period);if(turn===seq.current)setData(result);}
+    catch(err){if(turn===seq.current)alertError(err,'โหลดบัญชีคนขับไม่สำเร็จ');}
+    finally{if(turn===seq.current)setBusy(false);}
+  },[activeBranchId,period]);
+  useEffect(()=>{load();return()=>{seq.current++;};},[load]);
   const vehicles=data?.vehicles||[];
-  const rows=useMemo(()=>vehicleId==='all'?(data?.rows||[]):(data?.rows||[]).filter(r=>r.vehicle_id===vehicleId),[data,vehicleId]);
-  const pager = useCompactList(rows, row => [row.date, row.plate_no, row.material, row.reference, row.origin_place, row.destination_place, row.note]);
-  const [preview, setPreview] = useState(null);
-  const summary=useMemo(()=>vehicleId==='all'?data?.total:(data?.by_vehicle||[]).find(v=>v.vehicle_id===vehicleId),[data,vehicleId])||{income_satang:0,expense_satang:0,profit_satang:0,trips:0};
-  const field=(key,value)=>setForm(old=>({...old,[key]:value}));
-  const costTotal=costs.reduce((sum,[key])=>sum+Math.round((Number(form[key])||0)*100),0);
-  const income=Math.round((Number(form.income_baht)||0)*100);
-  const reset=()=>{setEditing('');setForm({...defaultForm(),vehicle_id:vehicleId==='all'?'':vehicleId,date:mode==='month'&&period!==currentDate().slice(0,7)?`${period}-01`:currentDate()});};
-  const edit=row=>{setEditing(row.id);setForm({date:row.date,vehicle_id:row.vehicle_id,material:row.material||'',quantity:row.quantity||'',origin_place:row.origin_place||'',destination_place:row.destination_place||'',distance_km:row.distance_km||'',reference:row.reference||'',note:row.note||'',income_baht:(Number(row.income_satang||0)/100).toFixed(2),...Object.fromEntries(costs.map(([key])=>[key,(Number(row[`${key}_satang`]||0)/100).toFixed(2)]))});editor.current?.scrollIntoView({behavior:'smooth',block:'start'});};
-  const save=async e=>{e.preventDefault();if(saving)return;setSaving(true);try{if(editing)await api.updateTripFinance(editing,form);else await api.createTripFinance(form);toastSuccess(editing?'แก้ไขเที่ยวงานแล้ว':'บันทึกเที่ยวงานแล้ว');reset();await load();}catch(err){alertError(err,'บันทึกเที่ยวงานไม่สำเร็จ');}finally{setSaving(false);}};
-  const remove=async row=>{if(!await confirmAction('ลบข้อมูลเที่ยวนี้?',`${row.date} · ${row.plate_no} · ${row.material}`))return;try{await api.deleteTripFinance(row.id);if(editing===row.id)reset();toastSuccess('ลบเที่ยวงานแล้ว');await load();}catch(err){alertError(err,'ลบเที่ยวงานไม่สำเร็จ');}};
-  return <div className="ktf-page">
-    <header className="ktf-hero"><div><span className="ktf-eyebrow"><ReceiptText size={16}/> ขวัญใจดาวทองขนส่ง · FINANCE</span><h1>บัญชีรายเที่ยว</h1><p>กรอกค่าขนส่งและต้นทุนทุกเที่ยว เห็นกำไรหรือขาดทุนทันที ก่อนสรุปยอดต่อคันรายเดือนและรายปี</p></div><img src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง"/></header>
-    <section className="ktf-panel ktf-toolbar"><div className="ktf-periods"><button type="button" className={mode==='month'?'active':''} onClick={()=>{setMode('month');setPeriod(currentDate().slice(0,7));}}>รายเดือน</button><button type="button" className={mode==='year'?'active':''} onClick={()=>{setMode('year');setPeriod(currentDate().slice(0,4));}}>รายปี</button></div><Field label={mode==='month'?'เลือกเดือน':'เลือกปี'}>{mode==='month'?<input className="input" type="month" value={period} onChange={e=>setPeriod(e.target.value)}/>:<input className="input" type="number" min="2000" max="2100" value={period} onChange={e=>setPeriod(e.target.value)} />}</Field><Field label="ทะเบียนรถ"><select className="input" value={vehicleId} onChange={e=>setVehicleId(e.target.value)}><option value="all">ทุกคัน</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></Field><button className="ktf-refresh" onClick={load} disabled={loading}><RotateCcw size={17}/>{loading?'กำลังโหลด':'รีเฟรช'}</button><button className="ktf-download" onClick={()=>exportCsv(rows,period)} disabled={!rows.length}><Download size={17}/> CSV</button></section>
-    <p className="ktf-note">สาขา {activeBranch?.name||'-'} · สรุปเฉพาะเที่ยวที่บันทึกในเมนูนี้ ไม่รวมบัญชีขนส่งหรืองานน้ำมันเดิมอัตโนมัติ เพื่อไม่ให้นับรายรับรายจ่ายซ้ำ</p>
-    <section className="ktf-totals"><MoneyCard label="รายรับค่าขนส่ง" value={summary.income_satang} kind="income"/><MoneyCard label="รวมต้นทุนทุกเที่ยว" value={summary.expense_satang} kind="expense"/><MoneyCard label="กำไร / ขาดทุน" value={summary.profit_satang} kind={summary.profit_satang<0?'negative':'profit'}/></section>
-    <section className="ktf-panel">
-      <div className="ktf-heading"><div><span>งานจากหน้าบันทึกน้ำมัน / ขนส่ง</span><h2>สรุปต้นทุนและกำไรต่อทะเบียน</h2><p>ยอดจากแต่ละงานที่กรอกในฟอร์มงานขนส่งโดยตรง แยกจากบัญชีรายเที่ยวด้านล่างเพื่อป้องกันยอดซ้ำ</p></div></div>
-      <div className="ktf-totals"><MoneyCard label="รายรับจากงานขนส่ง" value={deliverySummary?.total?.income_satang} kind="income"/><MoneyCard label="ต้นทุนที่กรอกในแต่ละงาน" value={deliverySummary?.total?.expense_satang} kind="expense"/><MoneyCard label="กำไร/ขาดทุนจากงานขนส่ง" value={deliverySummary?.total?.profit_satang} kind={deliverySummary?.total?.profit_satang<0?'negative':'profit'}/></div>
-      <div className="ktf-table-wrap" style={{marginTop:16}}><table><thead><tr><th>ทะเบียนรถ</th><th>เที่ยว</th><th>รายรับ</th><th>ต้นทุน</th><th>กำไร/ขาดทุน</th></tr></thead><tbody>{(deliverySummary?.by_vehicle||[]).filter(v=>vehicleId==='all'||v.vehicle_id===vehicleId).map(v=><tr key={v.vehicle_id}><td><strong>{v.plate_no}</strong></td><td>{v.trips}</td><td>{money(v.income_satang)} ฿</td><td>{money(v.expense_satang)} ฿</td><td className={v.profit_satang<0?'ktf-loss':'ktf-gain'}>{money(v.profit_satang)} ฿</td></tr>)}</tbody></table></div>
-      {mode==='year'&&<div className="ktf-table-wrap" style={{marginTop:14}}><table><thead><tr><th>เดือน</th><th>เที่ยว</th><th>รายรับ</th><th>ต้นทุน</th><th>กำไร/ขาดทุน</th></tr></thead><tbody>{(deliverySummary?.by_month||[]).map(v=><tr key={v.month}><td>{v.month}</td><td>{v.trips}</td><td>{money(v.income_satang)} ฿</td><td>{money(v.expense_satang)} ฿</td><td className={v.profit_satang<0?'ktf-loss':'ktf-gain'}>{money(v.profit_satang)} ฿</td></tr>)}</tbody></table></div>}
-      <p className="ktf-note" style={{marginTop:12}}>หากลงรายการเดียวกันในบัญชีรายเที่ยวด้วย จะมีรายการอยู่สองส่วน โปรดอย่าบวกยอดทั้งสองส่วนเข้าด้วยกัน ยอดต้นทุนที่ไม่ได้กรอกหรือไม่ได้จัดสรรต่อเที่ยวจะไม่รวมอยู่ในกำไรที่แสดง</p>
+  const allTrips=data?.trips||[];
+  const allAdvances=data?.advances||[];
+  const names=useMemo(()=>[...new Set([...allTrips,...allAdvances].map(r=>r.driver_name).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th')),[allTrips,allAdvances]);
+  const matches=r=>(vehicleFilter==='all'||r.vehicle_id===vehicleFilter)&&(driverFilter==='all'||r.driver_name===driverFilter);
+  const rows=allTrips.filter(matches),withdrawals=allAdvances.filter(matches);
+  const totals=useMemo(()=>{
+    const income=rows.reduce((sum,r)=>sum+Number(r.income_satang||0),0);
+    const paid=withdrawals.reduce((sum,r)=>sum+Number(r.amount_satang||0),0);
+    return {income,paid,balance:income-paid};
+  },[rows,withdrawals]);
+  const grouped=useMemo(()=>{
+    const out=new Map();
+    for(const r of [...rows,...withdrawals]){
+      const key=`${r.vehicle_id}\u0000${r.driver_name?.trim().toLocaleLowerCase('th')}`;
+      if(!out.has(key))out.set(key,{key,plate_no:r.plate_no,driver_name:r.driver_name,trips:0,income:0,paid:0});
+      const target=out.get(key);
+      if('income_satang' in r){target.trips++;target.income+=Number(r.income_satang||0);}
+      else target.paid+=Number(r.amount_satang||0);
+    }
+    return [...out.values()].sort((a,b)=>a.plate_no.localeCompare(b.plate_no,'th')||a.driver_name.localeCompare(b.driver_name,'th'));
+  },[rows,withdrawals]);
+  const pager=useCompactList(rows,r=>[r.date,r.plate_no,r.driver_name,r.material,r.reference,r.origin_place,r.destination_place]);
+  const advancePager=useCompactList(withdrawals,r=>[r.date,r.plate_no,r.driver_name,r.note]);
+  const materialPager=useCompactList(data?.materials||[],r=>[r.name]);
+  const selectVehicle=(target,id,setter)=>{
+    const v=vehicles.find(item=>item.id===id);
+    setter(old=>({...old,vehicle_id:id,driver_name:v?.driver_name||old.driver_name||''}));
+  };
+  function start(type,row){
+    setPanel(type);setEditing(row?{type,id:row.id}:null);
+    if(type==='trip')setTrip(row?{date:row.date,vehicle_id:row.vehicle_id,driver_name:row.driver_name,material:row.material,quantity:row.quantity||'',origin_place:row.origin_place||'',destination_place:row.destination_place||'',reference:row.reference||'',income_baht:toBaht(row.income_satang),note:row.note||''}:newTrip());
+    if(type==='advance')setAdvance(row?{date:row.date,vehicle_id:row.vehicle_id,driver_name:row.driver_name,amount_baht:toBaht(row.amount_satang),note:row.note||''}:newAdvance());
+    if(type==='material'){setMaterialName(row?.name||'');setMaterialEdit(row||null);}
+    editor.current?.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  async function save(e){e.preventDefault();if(submitBusy.current)return;submitBusy.current=true;setSaving(true);
+    try{
+      if(panel==='trip')editing?.type==='trip'?await api.updateDriverTrip(editing.id,trip):await api.createDriverTrip(trip);
+      else if(panel==='advance')editing?.type==='advance'?await api.updateDriverAdvance(editing.id,advance):await api.createDriverAdvance(advance);
+      else materialEdit?await api.updateTransportMaterial(materialEdit.id,{name:materialName}):await api.createTransportMaterial({name:materialName});
+      toastSuccess('บันทึกข้อมูลแล้ว');setEditing(null);setMaterialEdit(null);setMaterialName('');setTrip(newTrip());setAdvance(newAdvance());await load();
+    }catch(err){alertError(err,'บันทึกไม่สำเร็จ');}finally{submitBusy.current=false;setSaving(false);}
+  }
+  async function remove(type,row){
+    if(!await confirmAction('ยืนยันการลบรายการ?',type==='material'?row.name:`${row.date} · ${row.plate_no} · ${row.driver_name}`))return;
+    try{
+      if(type==='trip')await api.deleteDriverTrip(row.id);
+      else if(type==='advance')await api.deleteDriverAdvance(row.id);
+      else await api.deleteTransportMaterial(row.id);
+      toastSuccess('ลบรายการแล้ว');await load();
+    }catch(err){alertError(err,'ลบรายการไม่สำเร็จ');}
+  }
+  const materials=[...new Set(['ทราย','หิน','ดิน','หินคลุก','ทรายถม',...(data?.materials||[]).map(m=>m.name)])];
+  return <div className="di-page">
+    <header className="di-hero"><div><span><Truck size={16}/> ขวัญใจดาวทองขนส่ง</span><h1>รายได้คนขับ</h1><p>บันทึกรายได้ต่อเที่ยว · เบิกเงินล่วงหน้า · สรุปยอดสิ้นเดือน</p></div><img src="/kwanjai-logo.png" alt="โลโก้ขวัญใจดาวทองขนส่ง"/></header>
+    <section className="di-panel di-filter">
+      <div className="di-tabs"><button className={mode==='month'?'active':''} onClick={()=>{setMode('month');setPeriod(today().slice(0,7));}}>รายเดือน</button><button className={mode==='year'?'active':''} onClick={()=>{setMode('year');setPeriod(today().slice(0,4));}}>รายปี</button></div>
+      <Cell label={mode==='month'?'เดือน':'ปี'}><input className="input" type={mode==='month'?'month':'number'} min={mode==='year'?'2000':undefined} max={mode==='year'?'2100':undefined} value={period} onChange={e=>setPeriod(e.target.value)}/></Cell>
+      <Cell label="ทะเบียน"><select className="input" value={vehicleFilter} onChange={e=>setVehicleFilter(e.target.value)}><option value="all">ทุกทะเบียน</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></Cell>
+      <Cell label="คนขับ"><select className="input" value={driverFilter} onChange={e=>setDriverFilter(e.target.value)}><option value="all">ทุกคน</option>{names.map(n=><option key={n} value={n}>{n}</option>)}</select></Cell>
     </section>
-    <section className="ktf-panel ktf-editor" ref={editor}><div className="ktf-heading"><div><span>เพิ่มเที่ยว</span><h2>{editing?'แก้ไขบัญชีเที่ยว':'เพิ่มบัญชีเที่ยวใหม่'}</h2><p>กรอกทีละเที่ยว ระบบจะรวมต้นทุนและคำนวณกำไร/ขาดทุนให้อัตโนมัติ</p></div>{editing&&<button type="button" className="ktf-link" onClick={reset}><X size={17}/> ยกเลิกแก้ไข</button>}</div><form onSubmit={save} className="ktf-form">
-      <Field label="วันที่เที่ยว *"><input className="input" type="date" required value={form.date} onChange={e=>field('date',e.target.value)}/></Field><Field label="ทะเบียนรถ *"><select className="input" required value={form.vehicle_id} onChange={e=>field('vehicle_id',e.target.value)}><option value="">เลือกทะเบียนรถ</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></Field>
-      <Field label="วัสดุที่ขน *"><input className="input" required list="ktf-materials" maxLength={120} value={form.material} onChange={e=>field('material',e.target.value)} placeholder="เลือกหรือพิมพ์ เช่น ทราย / หิน"/><datalist id="ktf-materials">{['ทราย','หิน','ดิน','ปูน','หินคลุก','ทรายถม'].map(v=><option key={v} value={v}/>)}</datalist></Field><Field label="น้ำหนัก / จำนวน"><input className="input" value={form.quantity} onChange={e=>field('quantity',e.target.value)} placeholder="เช่น 30 ตัน" maxLength={80}/></Field>
-      <Field label="ต้นทาง"><input className="input" value={form.origin_place} onChange={e=>field('origin_place',e.target.value)} placeholder="จุดรับสินค้า" maxLength={200}/></Field><Field label="ปลายทาง"><input className="input" value={form.destination_place} onChange={e=>field('destination_place',e.target.value)} placeholder="จุดส่งสินค้า" maxLength={200}/></Field>
-      <Field label="ระยะทางที่กรอกเอง (กม.)"><input className="input" type="number" min="0" max="1000000" step="0.01" value={form.distance_km} onChange={e=>field('distance_km',e.target.value)} placeholder="0.00"/></Field><Field label="เลขที่ใบงาน / เอกสาร"><input className="input" value={form.reference} onChange={e=>field('reference',e.target.value)} placeholder="ถ้ามี" maxLength={90}/></Field>
-      <div className="ktf-subhead"><Wallet size={19}/><div><strong>รายรับต่อเที่ยว</strong><small>กรอกยอดค่าขนส่งที่ได้รับหรือคาดว่าจะได้รับ</small></div></div>
-      <Field label="ค่าขนส่ง (บาท) *" className="ktf-highlight"><input className="input" required type="number" min="0" max="9999999999.99" step="0.01" value={form.income_baht} onChange={e=>field('income_baht',e.target.value)} placeholder="0.00" /></Field>
-      <div className="ktf-subhead"><Truck size={19}/><div><strong>ต้นทุนของเที่ยวนี้</strong><small>เว้นว่างได้ถ้าไม่มีค่าใช้จ่ายในหมวดนั้น</small></div></div>
-      {costs.map(([key,label])=><Field label={`${label} (บาท)`} key={key}><input className="input" type="number" min="0" max="9999999999.99" step="0.01" value={form[key]} onChange={e=>field(key,e.target.value)} placeholder="0.00"/></Field>)}
-      <Field label="หมายเหตุ" className="ktf-wide"><textarea className="input" rows={2} maxLength={500} value={form.note} onChange={e=>field('note',e.target.value)} placeholder="รายละเอียดเพิ่มเติม"/></Field>
-      <div className="ktf-preview ktf-wide"><div><span>รายรับ</span><strong>{baht(income/100)} ฿</strong></div><div><span>ต้นทุนรวม</span><strong>{baht(costTotal/100)} ฿</strong></div><div className={income-costTotal<0?'loss':''}><span>กำไร / ขาดทุนต่อเที่ยว</span><strong>{baht((income-costTotal)/100)} ฿</strong></div></div>
-      <div className="ktf-submit ktf-wide"><button type="submit" className="btn-primary" disabled={saving||!vehicles.length}><Save size={18}/>{saving?'กำลังบันทึก...':editing?'บันทึกการแก้ไข':'บันทึกบัญชีเที่ยว'}</button>{!vehicles.length&&<small>เพิ่มทะเบียนรถในเมนูรถและคนขับก่อนบันทึก</small>}</div>
-    </form></section>
-    <section className="ktf-panel"><div className="ktf-heading"><div><span>สรุปต่อคัน</span><h2>สรุปกำไร / ขาดทุนต่อคัน</h2><p>{mode==='month'?`เดือน ${period}`:`ปี ${period}`} · รายรับ − ค่าใช้จ่าย</p></div></div><div className="ktf-table-wrap"><table><thead><tr><th>ทะเบียนรถ</th><th>เที่ยว</th><th>รายรับ</th><th>รายจ่าย</th><th>กำไร/ขาดทุน</th></tr></thead><tbody>{(data?.by_vehicle||[]).filter(v=>vehicleId==='all'||v.vehicle_id===vehicleId).map(v=><tr key={v.vehicle_id}><td><strong>{v.plate_no}</strong></td><td>{v.trips}</td><td>{money(v.income_satang)} ฿</td><td>{money(v.expense_satang)} ฿</td><td className={v.profit_satang<0?'ktf-loss':'ktf-gain'}>{money(v.profit_satang)} ฿</td></tr>)}</tbody></table></div></section>
-    {mode==='year'&&<section className="ktf-panel"><div className="ktf-heading"><div><span>รายปี</span><h2>รายเดือนในปี {period}</h2><p>ดูยอดรับ–จ่ายและกำไรในแต่ละเดือนของปีที่เลือก</p></div></div><div className="ktf-table-wrap"><table><thead><tr><th>เดือน</th><th>เที่ยว</th><th>รายรับ</th><th>รายจ่าย</th><th>กำไร/ขาดทุน</th></tr></thead><tbody>{(vehicleId==='all'?(data?.by_month||[]):Object.entries(rows.reduce((a,r)=>{const m=r.date.slice(0,7);const t=a[m]||(a[m]={month:m,trips:0,income_satang:0,expense_satang:0,profit_satang:0});t.trips++;t.income_satang+=r.income_satang;t.expense_satang+=r.expense_satang;t.profit_satang+=r.profit_satang;return a;},{})).map(([,v])=>v).sort((a,b)=>b.month.localeCompare(a.month))).map(v=><tr key={v.month}><td>{v.month}</td><td>{v.trips}</td><td>{money(v.income_satang)} ฿</td><td>{money(v.expense_satang)} ฿</td><td className={v.profit_satang<0?'ktf-loss':'ktf-gain'}>{money(v.profit_satang)} ฿</td></tr>)}</tbody></table></div></section>}
-    <section className="ktf-panel"><div className="ktf-heading"><div><span>เที่ยวที่บันทึก</span><h2>เที่ยวงานที่บันทึกไว้</h2><p>{rows.length} เที่ยว · เลือกรายการเพื่อแก้ไขหรือลบ</p></div><button className="ktf-download" onClick={()=>exportCsv(rows,period)} disabled={!rows.length}><Download size={16}/> ส่งออก</button></div><CompactPager state={pager} label="ค้นหาทะเบียน วันที่ วัสดุ หรือเลขที่บิล"/><div className="ktf-trip-list">{pager.visible.map(r=><article className="ktf-trip" key={r.id}><div className="ktf-trip-head"><div><span>{r.date} · {r.reference||'เที่ยวงาน'}</span><h3>{r.plate_no} · {r.material}</h3><p>{r.origin_place||'ไม่ระบุต้นทาง'} → {r.destination_place||'ไม่ระบุปลายทาง'} · {r.quantity||'-'} · {r.distance_km||0} กม.</p></div><div className={r.profit_satang<0?'ktf-loss':'ktf-gain'}><small>กำไร/ขาดทุน</small><strong>{money(r.profit_satang)} ฿</strong></div></div><div className="ktf-trip-money"><span>รายรับ <b>{money(r.income_satang)} ฿</b></span><span>รายจ่าย <b>{money(r.expense_satang)} ฿</b></span></div><details><summary>ดูต้นทุนแยกหมวด <ChevronDown size={16}/></summary><div className="ktf-cost-breakdown">{costs.map(([key,label])=><div key={key}><span>{label}</span><b>{money(r[`${key}_satang`])} ฿</b></div>)}{r.note&&<p className="ktf-wide">หมายเหตุ: {r.note}</p>}</div></details><div className="ktf-trip-actions"><button type="button" onClick={()=>setPreview(r)}>ดูบิล</button><button type="button" onClick={()=>edit(r)}><Pencil size={16}/> แก้ไข</button><button type="button" onClick={()=>remove(r)}><Trash2 size={16}/> ลบ</button></div></article>)}{!rows.length&&<div className="ktf-empty">{loading?'กำลังโหลดรายการ...':'ยังไม่มีข้อมูลเที่ยวงานในช่วงเวลานี้'}</div>}</div></section>
-    {preview && <div className="kw-modal-backdrop" role="presentation" onClick={()=>setPreview(null)}><section className="kw-modal-panel" role="dialog" aria-modal="true" aria-label="รายละเอียดบัญชีเที่ยว" onClick={e=>e.stopPropagation()}><header className="kw-modal-header"><strong>รายละเอียดบิล · {preview.reference || preview.plate_no}</strong><button type="button" className="kw-modal-close" onClick={()=>setPreview(null)}><X size={20}/> ปิด</button></header><div className="kw-modal-content kw-bill-detail"><p>วันที่ {preview.date} · ทะเบียน {preview.plate_no}</p><h2>{preview.material} · {preview.quantity || '-'}</h2><p>{preview.origin_place || '-'} → {preview.destination_place || '-'}</p><p>ระยะทาง {preview.distance_km || 0} กม.</p><div>รายรับ <strong>{money(preview.income_satang)} บาท</strong></div>{costs.map(([key,label])=><div key={key}>{label}<strong>{money(preview[`${key}_satang`])} บาท</strong></div>)}<div>รายจ่ายรวม <strong>{money(preview.expense_satang)} บาท</strong></div><div>กำไร / ขาดทุน <strong>{money(preview.profit_satang)} บาท</strong></div>{preview.note && <p>หมายเหตุ: {preview.note}</p>}<div className="kw-list-actions"><button type="button" onClick={()=>{const row=preview;setPreview(null);edit(row);}}>แก้ไข</button><button type="button" onClick={()=>{const row=preview;setPreview(null);remove(row);}}>ลบ</button></div></div></section></div>}
+    <section className="di-totals"><Value label="รายได้คนขับรวม" value={totals.income}/><Value label="เบิกล่วงหน้า" value={totals.paid}/><Value label="คงรับสิ้นงวด" value={totals.balance}/></section>
+    <section className="di-panel"><h2>สรุปแยกคนขับและทะเบียน</h2><div className="di-table"><table><thead><tr><th>ทะเบียน</th><th>คนขับ</th><th>เที่ยว</th><th>รายได้</th><th>เบิก</th><th>คงรับ</th></tr></thead><tbody>{grouped.map(r=><tr key={r.key}><td>{r.plate_no}</td><td>{r.driver_name}</td><td>{r.trips}</td><td>{cash(r.income)} ฿</td><td>{cash(r.paid)} ฿</td><td><strong>{cash(r.income-r.paid)} ฿</strong></td></tr>)}{!grouped.length&&<tr><td colSpan={6}>ไม่มีข้อมูลในช่วงเวลาที่เลือก</td></tr>}</tbody></table></div><p className="di-hint">ยอดคงรับ = รายได้คนขับ − เงินเบิกล่วงหน้า (ไม่ใช่กำไรของบริษัท) · เงินเบิกมากกว่ารายได้จะแสดงยอดติดลบ</p></section>
+    {mode==='year'&&<section className="di-panel"><h2>สรุปรายเดือนในปี {period}</h2><div className="di-table"><table><thead><tr><th>เดือน</th><th>รายได้</th><th>เบิก</th><th>คงรับ</th></tr></thead><tbody>{[...new Set([...rows,...withdrawals].map(r=>r.date.slice(0,7)))].sort().reverse().map(month=>{const income=rows.filter(r=>r.date.startsWith(month)).reduce((s,r)=>s+Number(r.income_satang||0),0);const paid=withdrawals.filter(r=>r.date.startsWith(month)).reduce((s,r)=>s+Number(r.amount_satang||0),0);return <tr key={month}><td>{month}</td><td>{cash(income)} ฿</td><td>{cash(paid)} ฿</td><td>{cash(income-paid)} ฿</td></tr>;})}</tbody></table></div></section>}
+    <section className="di-panel di-editor" ref={editor}>
+      <div className="di-tabs di-edit-tabs"><button type="button" className={panel==='trip'?'active':''} onClick={()=>start('trip')}><Plus size={16}/> รายได้ต่อเที่ยว</button><button type="button" className={panel==='advance'?'active':''} onClick={()=>start('advance')}><Wallet size={16}/> เบิกเงิน</button><button type="button" className={panel==='material'?'active':''} onClick={()=>start('material')}><ClipboardList size={16}/> จัดการวัสดุ</button></div>
+      <h2>{panel==='trip'?(editing?'แก้ไขรายได้ต่อเที่ยว':'เพิ่มรายได้คนขับต่อเที่ยว'):panel==='advance'?(editing?'แก้ไขรายการเบิก':'บันทึกเบิกเงินล่วงหน้า'):(materialEdit?'แก้ไขชื่อวัสดุ':'เพิ่มวัสดุที่ขน')}</h2>
+      <form onSubmit={save} className="di-form">
+        {panel==='material'?<Cell label="ชื่อวัสดุ *" wide><input className="input" value={materialName} maxLength={120} required onChange={e=>setMaterialName(e.target.value)} placeholder="เช่น ทราย / หิน / ดิน"/></Cell>:<>
+          <Cell label="วันที่ *"><input className="input" type="date" required value={panel==='trip'?trip.date:advance.date} onChange={e=>panel==='trip'?setTrip(v=>({...v,date:e.target.value})):setAdvance(v=>({...v,date:e.target.value}))}/></Cell>
+          <Cell label="ทะเบียนรถ *"><select className="input" required value={panel==='trip'?trip.vehicle_id:advance.vehicle_id} onChange={e=>panel==='trip'?selectVehicle(trip,e.target.value,setTrip):selectVehicle(advance,e.target.value,setAdvance)}><OptionVehicles vehicles={vehicles}/></select></Cell>
+          <Cell label="คนขับ *" wide><input className="input" required maxLength={120} value={panel==='trip'?trip.driver_name:advance.driver_name} onChange={e=>panel==='trip'?setTrip(v=>({...v,driver_name:e.target.value})):setAdvance(v=>({...v,driver_name:e.target.value}))} placeholder="ชื่อคนขับ"/></Cell>
+          {panel==='trip'?<>
+            <Cell label="วัสดุที่ขน *"><input className="input" list="di-materials" required maxLength={120} value={trip.material} onChange={e=>setTrip(v=>({...v,material:e.target.value}))} placeholder="เลือกวัสดุ"/><datalist id="di-materials">{materials.map(m=><option key={m} value={m}/>)}</datalist></Cell>
+            <Cell label="จำนวน / น้ำหนัก"><input className="input" value={trip.quantity} maxLength={80} onChange={e=>setTrip(v=>({...v,quantity:e.target.value}))} placeholder="เช่น 30 ตัน"/></Cell>
+            <Cell label="จุดรับสินค้า"><input className="input" value={trip.origin_place} maxLength={200} onChange={e=>setTrip(v=>({...v,origin_place:e.target.value}))}/></Cell>
+            <Cell label="จุดส่งสินค้า"><input className="input" value={trip.destination_place} maxLength={200} onChange={e=>setTrip(v=>({...v,destination_place:e.target.value}))}/></Cell>
+            <Cell label="เลขที่ใบงาน"><input className="input" value={trip.reference} maxLength={90} onChange={e=>setTrip(v=>({...v,reference:e.target.value}))}/></Cell>
+            <Cell label="รายได้คนขับเที่ยวนี้ (บาท) *"><input className="input" inputMode="decimal" type="number" required min="0" max="9999999999.99" step="0.01" value={trip.income_baht} onChange={e=>setTrip(v=>({...v,income_baht:e.target.value}))} placeholder="0.00"/></Cell>
+            <Cell label="หมายเหตุ" wide><textarea className="input" rows={2} maxLength={500} value={trip.note} onChange={e=>setTrip(v=>({...v,note:e.target.value}))}/></Cell>
+          </>:<>
+            <Cell label="จำนวนเงินเบิก (บาท) *" wide><input className="input" inputMode="decimal" type="number" required min="0" max="9999999999.99" step="0.01" value={advance.amount_baht} onChange={e=>setAdvance(v=>({...v,amount_baht:e.target.value}))} placeholder="0.00"/></Cell>
+            <Cell label="หมายเหตุการเบิก" wide><textarea className="input" rows={2} maxLength={500} value={advance.note} onChange={e=>setAdvance(v=>({...v,note:e.target.value}))}/></Cell>
+          </>}
+        </>}
+        <div className="di-submit di-wide"><button type="submit" disabled={saving||(panel!=='material'&&!vehicles.length)}><Save size={17}/>{saving?'กำลังบันทึก...':editing||materialEdit?'บันทึกการแก้ไข':'บันทึกข้อมูล'}</button>{(editing||materialEdit)&&<button type="button" className="di-secondary" onClick={()=>start(panel)}><X size={16}/> ยกเลิก</button>}</div>
+      </form>
+    </section>
+    <section className="di-panel"><h2>รายการรายได้ต่อเที่ยว</h2><CompactPager state={pager} label="ค้นหาวันที่ ทะเบียน คนขับ วัสดุ หรือเลขที่ใบงาน"/><div className="di-list">{pager.visible.map(r=><article key={r.id} className="di-entry"><div><small>{r.date} · {r.plate_no}</small><strong>{r.driver_name} · {r.material}</strong><span>{r.origin_place||'-'} → {r.destination_place||'-'} · {r.quantity||'-'}</span></div><div className="di-entry-side"><strong>{cash(r.income_satang)} ฿</strong><button type="button" onClick={()=>setPreview({kind:'trip',row:r})}>ดูรายละเอียด</button><RowButtons onEdit={()=>start('trip',r)} onRemove={()=>remove('trip',r)}/></div></article>)}{!pager.visible.length&&<p className="di-hint">{busy?'กำลังโหลด...':'ไม่พบรายการ'}</p>}</div></section>
+    <section className="di-panel"><h2>รายการเบิกเงินล่วงหน้า</h2><CompactPager state={advancePager} label="ค้นหาวันที่ ทะเบียน คนขับ หรือหมายเหตุ"/><div className="di-list">{advancePager.visible.map(r=><article key={r.id} className="di-entry"><div><small>{r.date} · {r.plate_no}</small><strong>{r.driver_name}</strong><span>{r.note||'เบิกเงินล่วงหน้า'}</span></div><div className="di-entry-side"><strong>{cash(r.amount_satang)} ฿</strong><button type="button" onClick={()=>setPreview({kind:'advance',row:r})}>ดูรายละเอียด</button><RowButtons onEdit={()=>start('advance',r)} onRemove={()=>remove('advance',r)}/></div></article>)}{!advancePager.visible.length&&<p className="di-hint">ไม่มีรายการเบิกในช่วงเวลาที่เลือก</p>}</div></section>
+    <section className="di-panel"><h2>วัสดุที่ Admin เพิ่มไว้</h2><CompactPager state={materialPager} label="ค้นหาชื่อวัสดุ"/><div className="di-list">{materialPager.visible.map(r=><article key={r.id} className="di-entry"><strong>{r.name}</strong><RowButtons onEdit={()=>start('material',r)} onRemove={()=>remove('material',r)}/></article>)}{!materialPager.visible.length&&<p className="di-hint">เพิ่มวัสดุใหม่ได้จากแบบฟอร์มด้านบน</p>}</div></section>
+    {preview&&<div className="di-modal-bg" role="presentation" onClick={()=>setPreview(null)}><section className="di-modal" role="dialog" aria-modal="true" aria-label="รายละเอียดรายการ" onClick={e=>e.stopPropagation()}><button type="button" className="di-modal-close" onClick={()=>setPreview(null)}><X size={18}/> ปิด</button><h2>{preview.kind==='trip'?'รายละเอียดรายได้คนขับ':'รายละเอียดเบิกเงิน'}</h2><p>วันที่ {preview.row.date} · ทะเบียน {preview.row.plate_no}</p><p>คนขับ: {preview.row.driver_name}</p>{preview.kind==='trip'&&<><p>วัสดุ: {preview.row.material} · {preview.row.quantity||'-'}</p><p>เส้นทาง: {preview.row.origin_place||'-'} → {preview.row.destination_place||'-'}</p><p>เลขที่ใบงาน: {preview.row.reference||'-'}</p></>}<p>หมายเหตุ: {preview.row.note||'-'}</p><h2>{cash(preview.kind==='trip'?preview.row.income_satang:preview.row.amount_satang)} บาท</h2></section></div>}
   </div>;
 }

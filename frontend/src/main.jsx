@@ -7,6 +7,7 @@ import './redesign.css';
 import './mobile-home.css';
 import './accessible-update.css';
 import './responsive-ton-layout.css';
+import './theme-finish.css';
 
 function markDeviceMode() {
   try {

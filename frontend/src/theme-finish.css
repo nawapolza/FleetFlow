@@ -1,0 +1,12 @@
+/* Final red / white accents for older Tailwind components that previously used blue outlines. */
+.rf-shell .border-blue-100,.rf-shell .border-blue-200,.rf-shell .border-blue-300,
+.rf-shell .border-sky-100,.rf-shell .border-sky-200,.rf-shell .border-indigo-100,
+.rf-shell .border-cyan-100,.rf-shell .border-cyan-200 {
+  border-color:#f1c8cb!important;
+}
+.rf-shell .bg-blue-50,.rf-shell .bg-blue-100,.rf-shell .bg-sky-50,.rf-shell .bg-indigo-50,
+.rf-shell .bg-cyan-50 {background-color:#fff4f4!important}
+.rf-shell .text-blue-500,.rf-shell .text-blue-600,.rf-shell .text-blue-700,.rf-shell .text-sky-600,
+.rf-shell .text-sky-700,.rf-shell .text-indigo-700,.rf-shell .text-cyan-700{color:#ad1d27!important}
+.rf-shell .bg-blue-600,.rf-shell .bg-blue-700{background-color:#b91c1c!important}
+.rf-shell .ring-blue-100,.rf-shell .ring-blue-200{--tw-ring-color:#f6cdd0!important}
