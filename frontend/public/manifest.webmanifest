@@ -1,7 +1,7 @@
 {
-  "name": "Test System — ระบบจัดการขนส่ง",
-  "short_name": "Test System",
-  "description": "ระบบบันทึกงานขนส่ง ค่าน้ำมัน รายรับรายจ่าย และรายงานรายคัน",
+  "name": "ขวัญใจดาวทองขนส่ง — ระบบบริหารงานขนส่ง",
+  "short_name": "ขวัญใจดาวทอง",
+  "description": "บันทึกบัญชีรายเที่ยว ต้นทุนค่าทราย ค่าหิน น้ำมัน และสรุปรายคันรายเดือนรายปี",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -10,9 +10,15 @@
   "lang": "th",
   "icons": [
     {
-      "src": "/brand-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/kwanjai-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/kwanjai-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     }
   ]

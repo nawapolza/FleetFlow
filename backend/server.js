@@ -443,6 +443,7 @@ async function ensureIndexes(db) {
     db.collection('deliveries').createIndex({ 'jobs.destination_place': 1 }),
     db.collection('vehicles').createIndex({ branch_id: 1, plate_no: 1 }),
     db.collection('transport_ledger').createIndex({ branch_id: 1, date: -1, vehicle_id: 1 }),
+    db.collection('trip_finance').createIndex({ branch_id: 1, date: -1, vehicle_id: 1 }),
     db.collection('vehicles').createIndex({ user_id: 1, plate_no: 1 }),
     db.collection('notifications').createIndex({ branch_id: 1, created_at: -1 }),
     db.collection('notifications').createIndex({ delivery_id: 1, created_at: -1 }),
@@ -2443,6 +2444,93 @@ router.delete('/transport-ledger/:id', requireAuth, requireOwner, asyncHandler(a
   const result=await req.db.collection('transport_ledger').deleteOne({_id:id,branch_id:branch.id});
   if (!result.deletedCount) return jsonResponse(res,{success:false,message:'ไม่พบรายการ'},404);
   emitDataChanged('transport-ledger','delete',{id:String(id),branch_id:branch.id});
+  jsonResponse(res,{success:true});
+}));
+
+
+// One trip = one income record and its direct costs. This ledger is intentionally
+// independent from transport_ledger and deliveries, avoiding double-counting.
+const TRIP_COST_FIELDS = ['sand_cost','stone_cost','fuel_cost','tire_cost','parts_cost','mechanic_cost','driver_cost','other_cost'];
+function tripMoney(value, label='จำนวนเงิน') {
+  const input=String(value === undefined || value === null || value === '' ? '0' : value).trim();
+  if (!/^\d{1,10}(?:\.\d{1,2})?$/.test(input)) throw Object.assign(new Error(`${label} ต้องเป็นจำนวนเงินไม่ติดลบ ทศนิยมไม่เกิน 2 ตำแหน่ง`),{status:422});
+  const [baht,satang='']=input.split('.');
+  return Number(baht)*100+Number(satang.padEnd(2,'0'));
+}
+function tripPayload(body,vehicle,branch,user,previous={}) {
+  const date=String(body.date || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0,10)!==date) throw Object.assign(new Error('วันที่ไม่ถูกต้อง'),{status:422});
+  const material=cleanString(body.material).slice(0,120);
+  if (!material) throw Object.assign(new Error('กรุณาระบุวัสดุที่ขน'),{status:422});
+  const income_satang=tripMoney(body.income_baht,'ค่าขนส่ง');
+  const costs={};
+  for (const field of TRIP_COST_FIELDS) costs[`${field}_satang`]=tripMoney(body[field],field);
+  const expense_satang=TRIP_COST_FIELDS.reduce((sum,field)=>sum+costs[`${field}_satang`],0);
+  const distance=Number(body.distance_km || 0);
+  if (!Number.isFinite(distance) || distance<0 || distance>1000000) throw Object.assign(new Error('ระยะทางไม่ถูกต้อง'),{status:422});
+  return {...previous,...branchFields(branch),date,vehicle_id:String(vehicle._id),plate_no:vehicle.plate_no,
+    material,quantity:cleanString(body.quantity).slice(0,80),origin_place:cleanString(body.origin_place).slice(0,200),destination_place:cleanString(body.destination_place).slice(0,200),
+    distance_km:Math.round(distance*100)/100,reference:cleanString(body.reference).slice(0,90),note:cleanString(body.note).slice(0,500),
+    income_satang,...costs,expense_satang,profit_satang:income_satang-expense_satang,updated_at:nowIso(),updated_by:String(user.id)};
+}
+function tripSummary(rows,vehicles) {
+  const byVehicle=new Map(vehicles.map(v=>[String(v._id),{vehicle_id:String(v._id),plate_no:v.plate_no,trips:0,income_satang:0,expense_satang:0,profit_satang:0}]));
+  const monthly={};
+  const empty=()=>({trips:0,income_satang:0,expense_satang:0,profit_satang:0});
+  const all=empty();
+  for(const r of rows){
+    const key=String(r.vehicle_id);
+    if(!byVehicle.has(key))byVehicle.set(key,{vehicle_id:key,plate_no:r.plate_no || '-',...empty()});
+    const m=r.date.slice(0,7);
+    if(!monthly[m])monthly[m]=empty();
+    for(const target of [all,byVehicle.get(key),monthly[m]]){
+      target.trips++;
+      target.income_satang+=Number(r.income_satang||0);
+      target.expense_satang+=Number(r.expense_satang||0);
+      target.profit_satang+=Number(r.profit_satang||0);
+    }
+  }
+  return {total:all,by_vehicle:[...byVehicle.values()].sort((a,b)=>a.plate_no.localeCompare(b.plate_no,'th')),by_month:Object.entries(monthly).sort(([a],[b])=>b.localeCompare(a)).map(([month,values])=>({month,...values}))};
+}
+router.get('/trip-finance',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
+  const branch=await resolveBranchContext(req.db,req.user,req);
+  const period=String(req.query.period || today().slice(0,7));
+  if(!/^\d{4}(?:-(?:0[1-9]|1[0-2]))?$/.test(period))return jsonResponse(res,{success:false,message:'รูปแบบช่วงเวลาต้องเป็น YYYY หรือ YYYY-MM'},422);
+  const filter={branch_id:branch.id,date:{$gte:`${period}${period.length===4?'-01-01':'-01'}`,$lte:`${period}${period.length===4?'-12-31':'-31'}`}};
+  const [vehicles,rows]=await Promise.all([
+    req.db.collection('vehicles').find({branch_id:branch.id,is_active:{$ne:0}},{sort:{plate_no:1}}).toArray(),
+    req.db.collection('trip_finance').find(filter,{sort:{date:-1,created_at:-1}}).toArray(),
+  ]);
+  jsonResponse(res,{success:true,period,vehicles:vehicles.map(mongoToPlain),rows:rows.map(mongoToPlain),...tripSummary(rows,vehicles)});
+}));
+router.post('/trip-finance',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
+  const branch=await resolveBranchContext(req.db,req.user,req);
+  const vehicle=await ledgerVehicle(req,branch);
+  if(!vehicle)return jsonResponse(res,{success:false,message:'กรุณาเลือกทะเบียนรถในสาขา'},422);
+  const doc=tripPayload(req.body,vehicle,branch,req.user);
+  doc.created_at=nowIso();doc.created_by=String(req.user.id);
+  const result=await req.db.collection('trip_finance').insertOne(doc);
+  emitDataChanged('trip-finance','create',{id:String(result.insertedId),branch_id:branch.id});
+  jsonResponse(res,{success:true,data:mongoToPlain({...doc,_id:result.insertedId})},201);
+}));
+router.put('/trip-finance/:id',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
+  const branch=await resolveBranchContext(req.db,req.user,req),id=oidOrNull(req.params.id);
+  if(!id)return jsonResponse(res,{success:false,message:'รหัสรายการไม่ถูกต้อง'},400);
+  const existing=await req.db.collection('trip_finance').findOne({_id:id,branch_id:branch.id});
+  if(!existing)return jsonResponse(res,{success:false,message:'ไม่พบรายการ'},404);
+  const vehicle=await ledgerVehicle(req,branch);
+  if(!vehicle)return jsonResponse(res,{success:false,message:'ไม่พบทะเบียนรถในสาขา'},422);
+  const next=tripPayload(req.body,vehicle,branch,req.user,existing);
+  await req.db.collection('trip_finance').replaceOne({_id:id,branch_id:branch.id},next);
+  emitDataChanged('trip-finance','update',{id:String(id),branch_id:branch.id});
+  jsonResponse(res,{success:true,data:mongoToPlain(next)});
+}));
+router.delete('/trip-finance/:id',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
+  const branch=await resolveBranchContext(req.db,req.user,req),id=oidOrNull(req.params.id);
+  if(!id)return jsonResponse(res,{success:false,message:'รหัสรายการไม่ถูกต้อง'},400);
+  const result=await req.db.collection('trip_finance').deleteOne({_id:id,branch_id:branch.id});
+  if(!result.deletedCount)return jsonResponse(res,{success:false,message:'ไม่พบรายการ'},404);
+  emitDataChanged('trip-finance','delete',{id:String(id),branch_id:branch.id});
   jsonResponse(res,{success:true});
 }));
 

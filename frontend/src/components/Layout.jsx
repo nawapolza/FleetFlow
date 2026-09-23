@@ -13,7 +13,8 @@ const navigation = [
   { key: 'quick', label: 'บันทึกงาน', icon: ClipboardList },
   { key: 'deliveries', label: 'รายการย้อนหลัง', icon: History },
   { key: 'calculator', label: 'คำนวณระยะทาง', icon: Calculator },
-  { key: 'ledger', label: 'บัญชีขนส่ง', icon: WalletCards, ownerOnly: true },
+  { key: 'trips', label: 'บัญชีรายเที่ยว', icon: ReceiptText, ownerOnly: true },
+  { key: 'ledger', label: 'บัญชีขนส่งเดิม', icon: WalletCards, ownerOnly: true },
   { key: 'reports', label: 'รายงานรายเดือน', icon: FileSpreadsheet, ownerOnly: true },
   { key: 'vehicles', label: 'รถและคนขับ', icon: Truck, ownerOnly: true },
   { key: 'branches', label: 'สาขา', icon: Building2, ownerOnly: true },
@@ -29,7 +30,7 @@ export default function Layout({ page, setPage, children }) {
   const items = navigation.filter(item => !item.ownerOnly || isOwner);
   const current = items.find(item => item.key === page) || items[0];
   const CurrentIcon = current.icon;
-  const quickItems = isOwner ? ['dashboard', 'quick', 'ledger', 'reports'] : ['quick', 'deliveries', 'calculator', 'account'];
+  const quickItems = isOwner ? ['dashboard', 'quick', 'trips', 'reports'] : ['quick', 'deliveries', 'calculator', 'account'];
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';
@@ -51,8 +52,8 @@ export default function Layout({ page, setPage, children }) {
     <header className="rf-header">
       <div className="rf-header-top">
         <button className="rf-wordmark" type="button" onClick={() => go(isOwner ? 'dashboard' : 'quick')} aria-label="กลับหน้าหลัก">
-          <span className="rf-wordmark-icon"><Activity size={24}/></span>
-          <span><strong>TEST SYSTEM</strong><small>TRANSPORT OPERATIONS</small></span>
+          <img className="kw-logo-header" src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง"/>
+          <span><strong>ขวัญใจดาวทองขนส่ง</strong><small>ระบบบริหารงานขนส่ง</small></span>
         </button>
         <div className="rf-header-actions">
           <span className="rf-system-indicator"><span/> ระบบพร้อมใช้งาน</span>
@@ -71,7 +72,7 @@ export default function Layout({ page, setPage, children }) {
       </nav>
     </header>
     <main className="rf-main">
-      <div className="rf-page-marker"><span><CurrentIcon size={18}/> {current.label}</span><small>TEST SYSTEM · {activeBranch?.name || 'ระบบขนส่ง'}</small></div>
+      <div className="rf-page-marker"><span><CurrentIcon size={18}/> {current.label}</span><small>ขวัญใจดาวทองขนส่ง · {activeBranch?.name || 'ระบบขนส่ง'}</small></div>
       {children}
     </main>
     <nav className="rf-mobile-dock" aria-label="เมนูด่วน">
@@ -80,7 +81,7 @@ export default function Layout({ page, setPage, children }) {
     </nav>
     {menuOpen && <div className="rf-menu-layer" role="presentation" onClick={()=>setMenuOpen(false)}>
       <section className="rf-menu-panel" role="dialog" aria-modal="true" aria-label="เมนูทั้งหมด" onClick={event=>event.stopPropagation()}>
-        <div className="rf-menu-title"><div><small>TEST SYSTEM</small><h2>เมนูทั้งหมด</h2></div><button type="button" onClick={()=>setMenuOpen(false)} aria-label="ปิดเมนู"><X size={22}/></button></div>
+        <div className="rf-menu-title"><div><small>ขวัญใจดาวทองขนส่ง</small><h2>เมนูทั้งหมด</h2></div><button type="button" onClick={()=>setMenuOpen(false)} aria-label="ปิดเมนู"><X size={22}/></button></div>
         <div className="rf-menu-branch">{activeBranch?.name || 'สาขาของฉัน'}</div>
         <div className="rf-menu-items">{items.map(item=>{const Icon=item.icon;return <button type="button" key={item.key} className={page===item.key?'is-active':''} onClick={()=>go(item.key)}><Icon size={20}/>{item.label}</button>;})}</div>
         <button type="button" className="rf-menu-logout" onClick={doLogout}><LogOut size={18}/> ออกจากระบบ</button>

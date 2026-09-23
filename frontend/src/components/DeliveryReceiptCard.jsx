@@ -190,7 +190,7 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
   const allPhotos = groups.flatMap(group => group.paths);
   return <article className="rf-invoice receipt-card">
     <header className="rf-invoice-head">
-      <div className="rf-invoice-headline"><span className="rf-invoice-accent"/><div><small>TEST SYSTEM / TRANSPORT OPERATIONS</small><h2>ใบสรุปงานขนส่ง</h2><p>รายละเอียดเที่ยวงานและการใช้น้ำมัน • ระยะทางจากการกรอกข้อมูลจริง</p></div></div>
+      <div className="rf-invoice-headline"><img src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง" className="kw-logo-receipt"/><div><small>ขวัญใจดาวทองขนส่ง / ระบบบริหารงานขนส่ง</small><h2>ใบสรุปงานขนส่ง</h2><p>รายละเอียดเที่ยวงานและการใช้น้ำมัน • ระยะทางจากการกรอกข้อมูลจริง</p></div></div>
       <div className="rf-invoice-id"><span>ทะเบียนรถ</span><strong>{row.plate_no || 'ไม่ระบุ'}</strong><small>{row.item_type || 'น้ำมัน'} · {row.operation_type || 'บันทึกงาน'}</small></div>
     </header>
     <div className="rf-invoice-meta">
@@ -226,7 +226,7 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
         <p className="rf-invoice-attachment-count">เอกสารแนบ {allPhotos.length} ไฟล์</p>
       </div></details>
     </div>
-    <footer className="rf-invoice-footer"><span>TEST SYSTEM · TRANSPORT RECEIPT</span><div className="rf-invoice-actions print:hidden">{onEdit && <button type="button" onClick={onEdit}><Edit size={16}/> แก้ไข</button>}{onDelete && <button type="button" onClick={onDelete}><Trash2 size={16}/> ลบรายการ</button>}</div></footer>
+    <footer className="rf-invoice-footer"><span>ขวัญใจดาวทองขนส่ง · ใบสรุปงานขนส่ง</span><div className="rf-invoice-actions print:hidden">{onEdit && <button type="button" onClick={onEdit}><Edit size={16}/> แก้ไข</button>}{onDelete && <button type="button" onClick={onDelete}><Trash2 size={16}/> ลบรายการ</button>}</div></footer>
   </article>;
 }
 

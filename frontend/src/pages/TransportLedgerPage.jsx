@@ -14,7 +14,7 @@ function downloadCsv(rows, month) {
   const lines=[fields.map(([,name])=>escape(name)).join(',')];
   rows.forEach(row=>lines.push(fields.map(([key])=>escape(key==='amount_satang' ? (Number(row[key] || 0)/100).toFixed(2) : key==='type' ? (row.type==='income'?'รายรับ':'รายจ่าย') : row[key])).join(',')));
   const url=URL.createObjectURL(new Blob(['\uFEFF'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}));
-  const a=document.createElement('a');a.href=url;a.download=`test-system-transport-ledger-${month}.csv`;a.click();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download=`kwanjai-transport-ledger-${month}.csv`;a.click();URL.revokeObjectURL(url);
 }
 export default function TransportLedgerPage() {
   const { activeBranchId, activeBranch }=useBranch();
@@ -55,8 +55,8 @@ export default function TransportLedgerPage() {
   const remove=async(row)=>{if(!await confirmAction('ลบรายการนี้?',`${row.date} · ${row.plate_no} · ${format(row.amount_satang)} บาท`))return;try{await api.deleteTransportLedger(row.id);toastSuccess('ลบรายการแล้ว');if(editing===row.id)newEntry();await load();}catch(err){alertError(err,'ลบรายการไม่สำเร็จ');}};
   return <div className="page-shell ledger-page">
     <header className="ledger-hero">
-      <div className="ledger-hero-copy"><span className="ledger-eyebrow"><WalletCards size={15}/> TEST SYSTEM · TRANSPORT FINANCE</span><h1>บัญชีงานขนส่ง</h1><p>บันทึกรายรับ–รายจ่ายตามทะเบียนรถและวัสดุที่ขน ตรวจสอบยอดคงเหลือ กำไร/ขาดทุนรายเดือนในที่เดียว</p></div>
-      <div className="ledger-hero-art"><Truck size={46}/><span>TRANSPORT<br/>LEDGER</span></div>
+      <div className="ledger-hero-copy"><span className="ledger-eyebrow"><WalletCards size={15}/> ขวัญใจดาวทองขนส่ง · TRANSPORT FINANCE</span><h1>บัญชีงานขนส่ง</h1><p>บันทึกรายรับ–รายจ่ายตามทะเบียนรถและวัสดุที่ขน ตรวจสอบยอดคงเหลือ กำไร/ขาดทุนรายเดือนในที่เดียว</p></div>
+      <div className="ledger-hero-art"><img src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง" className="kw-logo-ledger"/></div>
     </header>
     <div className="ledger-filters card-clean"><label><span><CalendarDays size={16}/> เดือนที่ต้องการสรุป</span><input className="input" type="month" value={month} onChange={e=>setMonth(e.target.value)} /></label><label><span><Truck size={16}/> ทะเบียนรถ</span><select className="input" value={selectedVehicle} onChange={e=>setSelectedVehicle(e.target.value)}><option value="all">ทุกคันในสาขา</option>{vehicles.map(v=><option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></label><div className="ledger-actions"><button className="btn-soft" onClick={load} disabled={loading}><RefreshCcw size={16}/>{loading?'กำลังโหลด':'รีเฟรช'}</button><button className="btn-soft" onClick={()=>downloadCsv(rows,month)} disabled={!rows.length}><Download size={16}/> CSV</button><button className="btn-primary" onClick={()=>document.getElementById('ledger-editor')?.scrollIntoView({behavior:'smooth'})}><Plus size={16}/> เพิ่มรายการ</button></div></div>
     <p className="ledger-scope">สาขา: {activeBranch?.name || '-'} · ข้อมูลเฉพาะเดือนที่เลือก · ยอดรายรับและรายจ่ายกรอกด้วยตนเอง ไม่รวมค่าเติมน้ำมันจากเมนูอื่นโดยอัตโนมัติ เพื่อป้องกันการนับซ้ำ</p>

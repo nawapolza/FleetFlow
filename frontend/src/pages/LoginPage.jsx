@@ -34,8 +34,8 @@ export default function LoginPage() {
             <div className="flex items-center gap-3">
               <BrandMark className="login-logo-card h-24 w-24 rounded-[2rem] text-base tracking-[0.32em]" />
               <div>
-                <p className="text-xs font-black uppercase tracking-[.22em] text-red-100">TEST SYSTEM</p>
-                <h1 className="mt-1 text-3xl font-black tracking-tight text-white">Test System</h1>
+                <p className="text-xs font-black uppercase tracking-[.22em] text-red-100">ขวัญใจดาวทองขนส่ง</p>
+                <h1 className="mt-1 text-3xl font-black tracking-tight text-white">ขวัญใจดาวทองขนส่ง</h1>
               </div>
             </div>
 
@@ -56,9 +56,9 @@ export default function LoginPage() {
               <div className="mb-5 md:hidden">
                 <BrandMark className="h-16 w-16 rounded-[1.4rem] text-sm tracking-[0.28em]" />
               </div>
-              <span className="heng-kicker">Test System สำหรับพนักงานและผู้ดูแล</span>
+              <span className="heng-kicker">ขวัญใจดาวทองขนส่ง สำหรับพนักงานและผู้ดูแล</span>
               <h2 className="mt-3 text-3xl font-black tracking-tight text-stone-950">ยินดีต้อนรับกลับ</h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-stone-500">เข้าสู่ระบบเพื่อเริ่มบันทึก ตรวจสอบข้อมูล และออกใบสรุปรายการของ Test System</p>
+              <p className="mt-2 text-sm font-semibold leading-6 text-stone-500">เข้าสู่ระบบเพื่อเริ่มบันทึก ตรวจสอบข้อมูล และออกใบสรุปรายการของ ขวัญใจดาวทองขนส่ง</p>
             </div>
 
             <form onSubmit={onSubmit} className="space-y-4">

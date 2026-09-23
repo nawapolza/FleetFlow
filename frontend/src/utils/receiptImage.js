@@ -324,7 +324,8 @@ export async function createReceiptImageBlob(row = {}) {
   ctx.fillStyle = '#f8f8f9'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.fillStyle = '#fff'; roundedRect(ctx, 26, 26, 1028, canvas.height - 52, 30); ctx.fill();
   ctx.fillStyle = red; roundedRect(ctx, 26, 26, 1028, 14, 7); ctx.fill();
-  drawText(ctx, 'TEST SYSTEM / TRANSPORT OPERATIONS', 75, 85, 740, { size: 22, weight: 900, color: red, maxLines: 1 });
+  try { const brandImage=await loadImage('/kwanjai-logo.png'); ctx.drawImage(brandImage, 875, 56, 140, 140); } catch (_) {}
+  drawText(ctx, 'ขวัญใจดาวทองขนส่ง', 75, 85, 740, { size: 22, weight: 900, color: red, maxLines: 1 });
   drawText(ctx, 'ใบสรุปงานขนส่ง', 75, 126, 780, { size: 53, weight: 950, color: ink, maxLines: 1 });
   drawText(ctx, 'ระยะทางจากข้อมูลที่กรอกเอง • ไม่ใช้ GPS', 75, 198, 800, { size: 22, weight: 750, color: muted, maxLines: 1 });
   ctx.fillStyle = '#fff1f2'; roundedRect(ctx, 76, 258, 930, 133, 22); ctx.fill();
@@ -440,7 +441,7 @@ export async function saveReceiptImageToDevice(row = {}, options = {}) {
   if (preferShare && navigator?.share && navigator?.canShare?.({ files: [file] })) {
     try {
       await navigator.share({
-        title: 'ใบสรุปรายการ Test System',
+        title: 'ใบสรุปรายการ ขวัญใจดาวทองขนส่ง',
         text: 'สรุปปิดงาน ขึ้นงาน ลงงาน น้ำหนัก รายได้ และรายละเอียดน้ำมัน',
         files: [file],
       });

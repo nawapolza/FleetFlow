@@ -16,6 +16,7 @@ import MonthlyReportsPage from './pages/MonthlyReportsPage.jsx';
 import UsersPage from './pages/UsersPage.jsx';
 import VehiclesPage from './pages/VehiclesPage.jsx';
 import TransportLedgerPage from './pages/TransportLedgerPage.jsx';
+import TripFinancePage from './pages/TripFinancePage.jsx';
 
 export default function App() {
   return (
@@ -65,6 +66,7 @@ function AppShell() {
       quick: <EmployeeQuickPage key={`quick-${pageKey}`} />,
       deliveries: <DeliveriesPage key={`deliveries-${pageKey}`} />,
       reports: <MonthlyReportsPage key={`reports-${pageKey}`} />,
+      trips: <TripFinancePage key={`trips-${pageKey}`} />,
       ledger: <TransportLedgerPage key={`ledger-${pageKey}`} />,
       users: <UsersPage key={`users-${pageKey}`} />,
       vehicles: <VehiclesPage key={`vehicles-${pageKey}`} />,

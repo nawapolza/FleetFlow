@@ -228,3 +228,11 @@ input[type=date],input[type=time],input[type=number] {min-width:0;max-width:100%
 .app-form-card .app-form-body {padding:clamp(1rem,2vw,2rem) !important;}
 .app-form-card .field-featured,.app-form-card .field-wide {min-width:0 !important;max-width:100% !important;}
 @media(max-width:640px){.app-form-card .form-progress-strip {gap:.75rem !important;}.app-form-card .app-form-body {padding:1rem !important;}.app-form-card .section-head {padding:1rem !important;}}
+
+/* ขวัญใจดาวทองขนส่ง brand and mobile home */
+.kw-logo-header{width:49px;height:49px;border-radius:12px;object-fit:contain;background:white;flex-shrink:0;padding:2px}
+.kw-logo-ledger{width:75px;height:75px;object-fit:contain;border-radius:15px;background:#fff}
+.kw-logo-receipt{width:58px;height:58px;border-radius:12px;object-fit:contain;flex-shrink:0}
+.rf-wordmark{gap:10px!important;min-width:0!important}.rf-wordmark>span strong{font-size:clamp(12px,1.4vw,16px)!important;line-height:1.45!important;white-space:normal!important;overflow-wrap:anywhere!important}.rf-wordmark>span small{white-space:normal!important}.rf-main{max-width:100%;min-width:0;overflow-x:clip}.rf-main>*{max-width:100%}.rf-desktop-nav{flex-wrap:wrap!important;row-gap:6px!important}.rf-tab{white-space:nowrap}.rf-header-top{gap:8px}@media(max-width:760px){.kw-logo-header{width:42px;height:42px}.rf-wordmark>span strong{font-size:12px!important}.rf-wordmark>span small{font-size:10px!important}.rf-header-top{padding-inline:10px!important}.rf-main{padding-inline:12px!important}.rf-mobile-dock{padding-bottom:max(4px,env(safe-area-inset-bottom))!important}}
+
+.kw-dashboard-logo{width:84px;height:84px;object-fit:contain;background:white;border-radius:18px;padding:4px;border:1px solid #f6dddd;flex:none;float:right;margin-left:12px;margin-bottom:8px}.dashboard-welcome{gap:14px!important}@media(max-width:760px){.kw-dashboard-logo{width:64px;height:64px}.dashboard-welcome{align-items:start!important}}

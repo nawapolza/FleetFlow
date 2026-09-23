@@ -85,10 +85,11 @@ export default function DashboardPage({ setPage }) {
     <div className="page-shell dashboard-page">
       <section className="dashboard-welcome">
         <div className="dashboard-welcome-copy">
+          <img src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง" className="kw-dashboard-logo"/>
           <div className="dashboard-title-line">
             <div>
               <p className="dashboard-eyebrow">ภาพรวมประจำวัน</p>
-              <h1>ภาพรวม {data?.branch?.name || 'Test System'}</h1>
+              <h1>ภาพรวม {data?.branch?.name || 'ขวัญใจดาวทองขนส่ง'}</h1>
             </div>
             <span className={`dashboard-sync ${connected ? 'is-online' : 'is-offline'}`}>
               {connected ? <Wifi size={15} /> : <WifiOff size={15} />}

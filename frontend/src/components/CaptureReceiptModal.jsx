@@ -319,7 +319,7 @@ export default function CaptureReceiptModal({ row, onClose }) {
                   <BrandMark compact className="h-full w-full rounded-[1rem] text-[11px] tracking-[0.28em]" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-black uppercase tracking-[.18em] text-violet-700">TEST SYSTEM</p>
+                  <p className="text-[10px] font-black uppercase tracking-[.18em] text-violet-700">ขวัญใจดาวทองขนส่ง</p>
                   <h2 className="mt-0.5 text-xl font-black leading-tight text-slate-950 sm:text-2xl">ใบสรุปรายการ</h2>
                   <p className="mt-0.5 text-[11px] font-bold text-slate-500">ขึ้นงาน ลงงาน น้ำหนัก รายได้ และข้อมูลน้ำมันในรูปแบบใหม่</p>
                 </div>

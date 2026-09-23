@@ -118,7 +118,7 @@ export default function MonthlyReportsPage() {
       </section>
 
       <header className="monthly-print-header">
-        <div><div className="monthly-print-mark">TS</div><div><p>Test System · {data?.branch?.name || '-'}</p><h1>รายงานสรุปน้ำมันประจำเดือน {data?.month || month}</h1><small>รหัสสาขา {data?.branch?.code || '-'}</small></div></div>
+        <div><img className="monthly-print-mark" src="/kwanjai-logo.png" alt="ขวัญใจดาวทองขนส่ง"/><div><p>ขวัญใจดาวทองขนส่ง · {data?.branch?.name || '-'}</p><h1>รายงานสรุปน้ำมันประจำเดือน {data?.month || month}</h1><small>รหัสสาขา {data?.branch?.code || '-'}</small></div></div>
         <span>สร้างเมื่อ {datetime(data?.generated_at)}</span>
       </header>
 
