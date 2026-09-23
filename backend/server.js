@@ -2669,7 +2669,78 @@ function driverRecord(body, vehicle, branch, user, old = {}) {
   return {...old,...branchFields(branch),date,driver_name,vehicle_id:String(vehicle._id),plate_no:vehicle.plate_no,
     material,quantity:cleanString(body.quantity).slice(0,80),origin_place:cleanString(body.origin_place).slice(0,200),
     destination_place:cleanString(body.destination_place).slice(0,200),reference:cleanString(body.reference).slice(0,90),
-    note:cleanString(body.note).slice(0,500),income_satang,updated_at:nowIso(),updated_by:String(user.id)};
+    note:cleanString(body.note).slice(0,500),income_satang,...normalizeDriverSourceFields(body,old),updated_at:nowIso(),updated_by:String(user.id)};
+}
+
+function normalizeDriverSourceFields(body = {}, old = {}) {
+  const sourceDeliveryId = cleanString(body.source_delivery_id || old.source_delivery_id).slice(0, 64);
+  const sourceJobId = cleanString(body.source_job_id || old.source_job_id).slice(0, 100);
+  const sourceType = sourceDeliveryId ? 'delivery' : cleanString(old.source_type).slice(0, 30);
+  return sourceDeliveryId ? { source_type: sourceType || 'delivery', source_delivery_id: sourceDeliveryId, source_job_id: sourceJobId || 'legacy' } : {};
+}
+function deliveryQueueRows(deliveries = [], settled = []) {
+  const settledKeys = new Set(settled
+    .filter(row => row.source_delivery_id)
+    .map(row => `${String(row.source_delivery_id)}::${String(row.source_job_id || 'legacy')}`));
+  const out = [];
+  for (const row of deliveries) {
+    const deliveryId = String(row._id);
+    const jobs = Array.isArray(row.jobs) && row.jobs.length ? row.jobs : [legacyDeliveryJob(row)];
+    jobs.forEach((job, index) => {
+      const jobId = String(job.id || job.job_id || `job-${index + 1}`);
+      const key = `${deliveryId}::${jobId}`;
+      if (settledKeys.has(key)) return;
+      const loadingKg = Number(job.loading_weight_kg || 0);
+      const unloadingKg = Number(job.unloading_weight_kg || 0);
+      const weightKg = unloadingKg > 0 ? unloadingKg : loadingKg;
+      out.push({
+        source_delivery_id: deliveryId,
+        source_job_id: jobId,
+        date: cleanString(job.unload_date || job.load_date || row.work_date || row.fill_date),
+        vehicle_id: String(row.vehicle_id || ''),
+        plate_no: cleanString(row.plate_no),
+        driver_name: cleanString(row.driver_name || row.driver_name_input),
+        origin_place: cleanString(job.origin_place || row.origin_place),
+        destination_place: cleanString(job.destination_place || row.destination_place),
+        quantity: weightKg > 0 ? `${round2(weightKg / 1000)} ตัน` : '',
+        reference: cleanString(job.reference || job.job_reference || ''),
+        suggested_material: cleanString(job.cargo_name || row.cargo_name || ''),
+        created_at: row.created_at || '',
+      });
+    });
+  }
+  return out.sort((a,b) => String(b.date).localeCompare(String(a.date)) || String(b.created_at).localeCompare(String(a.created_at)));
+}
+async function resolveDriverTripSource(req, branch, body = {}) {
+  const sourceId = oidOrNull(body.source_delivery_id);
+  if (!sourceId) return { body, source: null };
+  const delivery = await req.db.collection('deliveries').findOne({ _id: sourceId, branch_id: branch.id });
+  if (!delivery) throw Object.assign(new Error('ไม่พบเที่ยวงานต้นทาง หรือเที่ยวงานไม่ได้อยู่ในสาขานี้'), { status: 404 });
+  const jobs = Array.isArray(delivery.jobs) && delivery.jobs.length ? delivery.jobs : [legacyDeliveryJob(delivery)];
+  const requestedJobId = cleanString(body.source_job_id || 'legacy');
+  let job = jobs.find((item,index) => String(item.id || item.job_id || `job-${index+1}`) === requestedJobId);
+  if (!job && jobs.length === 1) job = jobs[0];
+  if (!job) throw Object.assign(new Error('ไม่พบงานย่อยที่เลือกในรายการขนส่ง'), { status: 404 });
+  const realJobId = String(job.id || job.job_id || (jobs.length === 1 ? 'legacy' : 'job-1'));
+  const vehicleId = String(delivery.vehicle_id || body.vehicle_id || '');
+  const loadingKg = Number(job.loading_weight_kg || 0);
+  const unloadingKg = Number(job.unloading_weight_kg || 0);
+  const weightKg = unloadingKg > 0 ? unloadingKg : loadingKg;
+  return {
+    source: { delivery, job, jobId: realJobId },
+    body: {
+      ...body,
+      source_delivery_id: String(delivery._id),
+      source_job_id: realJobId,
+      vehicle_id: vehicleId,
+      date: cleanString(job.unload_date || job.load_date || delivery.work_date || delivery.fill_date || body.date),
+      driver_name: cleanString(delivery.driver_name || delivery.driver_name_input || body.driver_name),
+      origin_place: cleanString(job.origin_place || delivery.origin_place || body.origin_place),
+      destination_place: cleanString(job.destination_place || delivery.destination_place || body.destination_place),
+      quantity: body.quantity || (weightKg > 0 ? `${round2(weightKg / 1000)} ตัน` : ''),
+      reference: body.reference || cleanString(job.reference || job.job_reference || ''),
+    },
+  };
 }
 function driverAdvance(body, vehicle, branch, user, old = {}) {
   return {...old,...branchFields(branch),date:driverDate(body.date),vehicle_id:String(vehicle._id),plate_no:vehicle.plate_no,
@@ -2698,20 +2769,32 @@ router.get('/driver-finance',requireAuth,requireOwner,asyncHandler(async(req,res
   const branch=await resolveBranchContext(req.db,req.user,req);
   const {period,from,to}=driverPeriod(req.query.period);
   const filter={branch_id:branch.id,date:{$gte:from,$lte:to}};
-  const [vehicles,trips,advances,materials]=await Promise.all([
+  const deliveryFilter={branch_id:branch.id,work_date:{$gte:from,$lte:to}};
+  const [vehicles,trips,advances,materials,deliveries]=await Promise.all([
     req.db.collection('vehicles').find({branch_id:branch.id,is_active:{$ne:0}},{sort:{plate_no:1},projection:{plate_no:1,driver_name:1}}).toArray(),
     req.db.collection('driver_trips').find(filter,{sort:{date:-1,created_at:-1}}).toArray(),
     req.db.collection('driver_advances').find(filter,{sort:{date:-1,created_at:-1}}).toArray(),
     req.db.collection('transport_materials').find({branch_id:branch.id,is_active:{$ne:0}},{sort:{name:1}}).toArray(),
+    req.db.collection('deliveries').find(deliveryFilter,{sort:{work_date:-1,created_at:-1},projection:{work_date:1,fill_date:1,vehicle_id:1,plate_no:1,driver_name:1,driver_name_input:1,jobs:1,origin_place:1,destination_place:1,cargo_name:1,created_at:1}}).toArray(),
   ]);
-  jsonResponse(res,{success:true,period,vehicles:vehicles.map(mongoToPlain),trips:trips.map(mongoToPlain),advances:advances.map(mongoToPlain),materials:materials.map(mongoToPlain),...driverTotals(trips,advances)});
+  const pending_jobs=deliveryQueueRows(deliveries,trips);
+  jsonResponse(res,{success:true,period,vehicles:vehicles.map(mongoToPlain),trips:trips.map(mongoToPlain),advances:advances.map(mongoToPlain),materials:materials.map(mongoToPlain),pending_jobs,...driverTotals(trips,advances)});
 }));
 router.post('/driver-finance/trips',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
-  const branch=await resolveBranchContext(req.db,req.user,req), vehicle=await driverVehicle(req,branch);
-  const doc=driverRecord(req.body,vehicle,branch,req.user);
-  doc.created_at=nowIso();doc.created_by=String(req.user.id);
-  const result=await req.db.collection('driver_trips').insertOne(doc);
-  jsonResponse(res,{success:true,data:mongoToPlain({...doc,_id:result.insertedId})},201);
+  const branch=await resolveBranchContext(req.db,req.user,req);
+  const resolved=await resolveDriverTripSource(req,branch,req.body||{});
+  if(resolved.body.source_delivery_id){
+    const duplicate=await req.db.collection('driver_trips').findOne({branch_id:branch.id,source_delivery_id:resolved.body.source_delivery_id,source_job_id:resolved.body.source_job_id});
+    if(duplicate)return jsonResponse(res,{success:false,message:'เที่ยวงานนี้คิดรายได้คนขับแล้ว กรุณาเปิดรายการเดิมเพื่อแก้ไข'},409);
+  }
+  const originalBody=req.body; req.body=resolved.body;
+  try {
+    const vehicle=await driverVehicle(req,branch);
+    const doc=driverRecord(resolved.body,vehicle,branch,req.user);
+    doc.created_at=nowIso();doc.created_by=String(req.user.id);
+    const result=await req.db.collection('driver_trips').insertOne(doc);
+    jsonResponse(res,{success:true,data:mongoToPlain({...doc,_id:result.insertedId})},201);
+  } finally { req.body=originalBody; }
 }));
 router.put('/driver-finance/trips/:id',requireAuth,requireOwner,asyncHandler(async(req,res)=>{
   const branch=await resolveBranchContext(req.db,req.user,req),id=oidOrNull(req.params.id);

@@ -13,7 +13,7 @@ const navigation = [
   { key: 'quick', label: 'บันทึกงาน', icon: ClipboardList },
   { key: 'deliveries', label: 'รายการย้อนหลัง', icon: History },
   { key: 'calculator', label: 'คำนวณระยะทาง', icon: Calculator },
-  { key: 'trips', label: 'รายได้คนขับ', icon: ReceiptText, ownerOnly: true },
+  { key: 'trips', label: 'บัญชีคนขับ', icon: ReceiptText, ownerOnly: true },
   { key: 'ledger', label: 'บัญชีขนส่งเดิม', icon: WalletCards, ownerOnly: true },
   { key: 'reports', label: 'รายงานรายเดือน', icon: FileSpreadsheet, ownerOnly: true },
   { key: 'vehicles', label: 'รถและคนขับ', icon: Truck, ownerOnly: true },
