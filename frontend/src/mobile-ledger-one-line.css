@@ -1,0 +1,88 @@
+/* Mobile ledger: do not split a date or a currency amount across lines. */
+.ledger-table-scroll{max-width:100%;min-width:0}
+.ledger-table{width:100%;table-layout:auto}
+.ledger-table td.ledger-money-nowrap,.ledger-table td.ledger-date-nowrap,
+.ledger-table th:nth-child(1){white-space:nowrap!important;word-break:normal!important;overflow-wrap:normal!important;font-variant-numeric:tabular-nums}
+.ledger-table td.ledger-money-nowrap{min-width:max-content;font-size:clamp(12px,3.3vw,14px);font-weight:850}
+.ledger-row-actions{display:flex;flex-wrap:nowrap!important;align-items:center;gap:7px}
+.ledger-row-actions button{flex:0 0 auto}
+.ledger-kpi strong,.ledger-kpi strong small,.ledger-categories strong,
+.ktf-total strong,.ktf-total strong small,.ktf-preview strong,.ktf-trip-head strong,
+.ktf-trip-money strong,.dw-summary-card>strong{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important;font-variant-numeric:tabular-nums}
+/* Transform only the two transport-ledger tables into legible stacked cards on phones.
+   Desktop keeps the familiar table layout, other reports are not altered. */
+@media (max-width:720px){
+ .ledger-history-results,.ledger-vehicle-results{overflow-x:visible!important;max-width:100%;border:0!important}
+ .ledger-history-results .ledger-table,.ledger-vehicle-results .ledger-table,
+ .ledger-history-results tbody,.ledger-vehicle-results tbody{display:block;width:100%!important;min-width:0!important}
+ .ledger-history-results thead,.ledger-vehicle-results thead{display:none}
+ .ledger-history-results tbody,.ledger-vehicle-results tbody{display:grid;gap:12px}
+ .ledger-history-results .ledger-table tbody tr,.ledger-vehicle-results .ledger-table tbody tr{
+  display:grid;grid-template-columns:minmax(0,1fr);width:100%;min-width:0;
+  border:1px solid #f2cece;border-radius:15px;overflow:hidden;background:#fff;
+  box-shadow:0 4px 12px #7f1d1d08;padding:8px 12px;
+ }
+ .ledger-history-results .ledger-table td,.ledger-vehicle-results .ledger-table td{
+  display:grid;grid-template-columns:minmax(86px,39%) minmax(0,1fr);gap:8px;align-items:center;
+  width:100%;min-width:0!important;max-width:100%;padding:9px 0!important;
+  border:0!important;border-bottom:1px solid #f8eded!important;
+  font-size:clamp(12px,3.3vw,14px);text-align:left!important;
+ }
+ .ledger-history-results .ledger-table td:last-child,.ledger-vehicle-results .ledger-table td:last-child{border-bottom:0!important}
+ .ledger-history-results .ledger-table td::before,.ledger-vehicle-results .ledger-table td::before{
+  content:attr(data-label);display:block;color:#7f1d1d;font-weight:800;font-size:12px;
+  white-space:normal;overflow-wrap:normal;word-break:normal;
+ }
+ .ledger-history-results .ledger-table td.ledger-date-nowrap,
+ .ledger-history-results .ledger-table td.ledger-money-nowrap,
+ .ledger-vehicle-results .ledger-table td.ledger-money-nowrap{
+  display:flex;justify-content:space-between;gap:12px;align-items:center;white-space:nowrap!important;
+  font-variant-numeric:tabular-nums;
+ }
+ .ledger-history-results .ledger-table td.ledger-date-nowrap::before,
+ .ledger-history-results .ledger-table td.ledger-money-nowrap::before,
+ .ledger-vehicle-results .ledger-table td.ledger-money-nowrap::before{flex:0 0 auto}
+ .ledger-history-results .ledger-table td.ledger-date-nowrap,
+ .ledger-history-results .ledger-table td.ledger-money-nowrap,
+ .ledger-vehicle-results .ledger-table td.ledger-money-nowrap{font-size:clamp(12px,3.25vw,15px);letter-spacing:-.015em}
+ .ledger-history-results .ledger-table td.ledger-note-cell{overflow-wrap:anywhere;word-break:normal;white-space:normal}
+ .ledger-history-results .ledger-table td .ledger-cell-sub{font-size:12px;min-width:0}
+ .ledger-history-results .ledger-table td[data-label="จัดการ"]{display:flex;align-items:center;justify-content:space-between}
+ .ledger-history-results .ledger-table td[data-label="จัดการ"]::before{flex:0 0 auto}
+ .ledger-history-results .ledger-row-actions{display:flex;justify-content:flex-end;gap:8px}
+ .ledger-history-results .ledger-row-actions button{display:grid;place-items:center;min-width:38px;min-height:38px;border-radius:10px}
+ .ledger-history-results .ledger-table td.ledger-empty{display:block;white-space:normal!important}
+ .ledger-history-results .ledger-table td.ledger-empty::before{display:none}
+ .ledger-page .ledger-kpis{min-width:0;grid-template-columns:minmax(0,1fr)!important}
+ .ledger-page .ledger-kpi{min-width:0;overflow:visible}
+ .ledger-page .ledger-kpi strong{font-size:clamp(17px,5vw,25px)!important;white-space:nowrap!important}
+ .ledger-page .ledger-kpi strong small{font-size:12px}
+ .ledger-page .ledger-categories>div{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px}
+ .ledger-page .ledger-categories strong{font-size:clamp(12px,3.5vw,15px);white-space:nowrap!important}
+ .dw-summary-card>strong{font-size:clamp(17px,5vw,22px)!important;white-space:nowrap!important}
+}
+@media(max-width:340px){
+ .ledger-history-results .ledger-table tbody tr,.ledger-vehicle-results .ledger-table tbody tr{padding:8px}
+ .ledger-history-results .ledger-table td,.ledger-vehicle-results .ledger-table td{gap:5px}
+ .ledger-history-results .ledger-table td.ledger-date-nowrap,
+ .ledger-history-results .ledger-table td.ledger-money-nowrap,
+ .ledger-vehicle-results .ledger-table td.ledger-money-nowrap{font-size:12px;letter-spacing:-.03em}
+}
+@media print{
+ .ledger-history-results .ledger-table,.ledger-vehicle-results .ledger-table{display:table!important;min-width:0!important}
+ .ledger-history-results thead,.ledger-vehicle-results thead{display:table-header-group!important}
+ .ledger-history-results tbody,.ledger-vehicle-results tbody{display:table-row-group!important}
+ .ledger-history-results tbody tr,.ledger-vehicle-results tbody tr{display:table-row!important}
+ .ledger-history-results td,.ledger-vehicle-results td{display:table-cell!important}
+ .ledger-history-results td::before,.ledger-vehicle-results td::before{display:none!important}
+}
+/* Keep auto-linked trip profit and manual amounts readable on narrow phones. */
+@media (max-width: 680px) {
+ .ledger-history-results .ledger-table td:nth-child(5),
+ .ledger-vehicle-results .ledger-table td:nth-child(2),
+ .ledger-vehicle-results .ledger-table td:nth-child(3),
+ .ledger-vehicle-results .ledger-table td:nth-child(4){white-space:nowrap!important;font-variant-numeric:tabular-nums;}
+ .ledger-history-results .ledger-table td:nth-child(5){font-size:clamp(12px,3.4vw,16px);}
+ .ledger-kpis .ledger-kpi strong {font-size:clamp(16px,4vw,26px);white-space:nowrap!important;letter-spacing:-.03em;}
+ .ledger-kpis .ledger-kpi strong small {font-size:.62em;display:inline;white-space:nowrap;}
+}
