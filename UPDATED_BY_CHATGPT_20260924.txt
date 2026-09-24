@@ -1,0 +1,36 @@
+อัปเดตหลักในชุดนี้
+====================
+1) ปรับหน้า บัญชีคนขับ (TripFinancePage)
+   - จัดลำดับใหม่เป็น 3 ขั้นตอน: งานรอคิดรายได้ / บันทึก-จัดการรายได้ / สรุปสิ้นเดือน
+   - ออกแบบ UI ใหม่ให้อ่านง่ายขึ้น ดูเป็นงานมืออาชีพมากขึ้น และรองรับมือถือดีขึ้น
+   - จัดวางช่องข้อมูลใหม่ให้อยู่ในตำแหน่งที่ใช้งานง่ายกว่าเดิม
+   - เพิ่มการสรุปภาพรวมด้านบน: เที่ยวทั้งหมด / รายได้รวม / เบิกล่วงหน้า / ยอดคงรับ
+   - เพิ่มตัวกรองมุมมองในขั้นตอนสรุป:
+     • แยกเป็นบุคคล
+     • แยกตามทะเบียน
+     • คนขับ + ทะเบียน
+
+2) ปรับ backend summary ของบัญชีคนขับ
+   - เพิ่มการสรุป by_person
+   - เพิ่มการสรุป by_vehicle
+   - คง by_driver เดิมไว้สำหรับดูแบบละเอียดคู่คนขับ + ทะเบียน
+   - ไม่ต้อง migrate MongoDB เพิ่ม ใช้ collection เดิมได้
+
+3) ไฟล์ที่แก้ไข
+   - frontend/src/pages/TripFinancePage.jsx
+   - frontend/src/pages/driverIncome.css
+   - backend/server.js
+
+คำสั่ง git init เบื้องต้น
+=======================
+git init
+git add .
+git commit -m "redesign driver finance page and summary views"
+
+ถ้ามี remote เดิมอยู่แล้วและจะ push:
+=================================
+git remote -v
+git status
+git add .
+git commit -m "redesign driver finance page and summary views"
+git push
