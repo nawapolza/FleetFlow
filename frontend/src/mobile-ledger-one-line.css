@@ -86,3 +86,7 @@
  .ledger-kpis .ledger-kpi strong {font-size:clamp(16px,4vw,26px);white-space:nowrap!important;letter-spacing:-.03em;}
  .ledger-kpis .ledger-kpi strong small {font-size:.62em;display:inline;white-space:nowrap;}
 }
+
+/* Read-only provenance helps verify missing auto income without inventing entries. */
+.ledger-source-status{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;padding:12px 15px;background:#fffafa;border:1px solid #f2cece;border-radius:15px;color:#7f1d1d;font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.ledger-source-status strong{white-space:nowrap}.ledger-source-warning{color:#991b1b;font-weight:750;width:100%}

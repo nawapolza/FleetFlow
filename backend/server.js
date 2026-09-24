@@ -2556,17 +2556,65 @@ function deliveryProfitLedgerRows(deliveries, vehicles) {
   }
   return result;
 }
+// Older installations keep manually calculated trip income/cost in trip_finance.
+// Convert those records into read-only ledger rows without writing to MongoDB.
+// Records already represented by an exactly matching source delivery are reconciled
+// by date, normalized plate, gross income and direct cost; never match on date alone.
+function historicalTripProfitRows(tripFinance, vehicles, deliveryRows) {
+  const byPlate = new Map(vehicles.map(v => [String(v.plate_no || '').trim(), String(v._id)]));
+  const available = new Map();
+  for (const row of deliveryRows) {
+    const signature = [row.date, String(row.plate_no || '').trim(), Number(row.trip_income_satang || 0), Number(row.trip_cost_satang || 0)].join('|');
+    available.set(signature, (available.get(signature) || 0) + 1);
+  }
+  const rows = [];
+  let matched = 0;
+  for (const trip of tripFinance) {
+    const date = String(trip.date || '').slice(0,10);
+    const plate = String(trip.plate_no || '').trim();
+    const income = Number(trip.income_satang || 0);
+    const expense = Number(trip.expense_satang || 0);
+    if (!date || (!income && !expense)) continue;
+    const signature = [date, plate, income, expense].join('|');
+    if ((available.get(signature) || 0) > 0) {
+      available.set(signature, available.get(signature) - 1);
+      matched += 1;
+      continue;
+    }
+    rows.push({
+      id: `trip-finance:${String(trip._id)}`,
+      source_type: 'trip_finance', source_trip_finance_id: String(trip._id),
+      vehicle_id: byPlate.get(plate) || String(trip.vehicle_id || ''),
+      plate_no: plate || '-', date, type: 'income', category: 'กำไรสุทธิจากบัญชีต่อเที่ยว',
+      material: cleanString(trip.material || '').slice(0,120),
+      quantity: cleanString(trip.quantity || '').slice(0,80),
+      amount_satang: income - expense, trip_income_satang: income,
+      trip_cost_satang: expense, is_auto: true,
+      note: `บัญชีต่อเที่ยวเดิม · ${cleanString(trip.reference || trip.note || '')}`.slice(0,500),
+    });
+  }
+  return { rows, matched };
+}
 router.get('/transport-ledger', requireAuth, requireOwner, asyncHandler(async (req,res) => {
   const branch = await resolveBranchContext(req.db, req.user, req);
   const month = String(req.query.month || today().slice(0,7));
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return jsonResponse(res,{success:false,message:'รูปแบบเดือนต้องเป็น YYYY-MM'},422);
   const vehicles = await req.db.collection('vehicles').find({branch_id:branch.id,is_active:{$ne:0}},{sort:{plate_no:1}}).toArray();
-  const [manualRows, deliveries] = await Promise.all([
-    req.db.collection('transport_ledger').find({branch_id:branch.id,date:{$gte:`${month}-01`,$lte:`${month}-31`}},{sort:{date:-1,created_at:-1}}).toArray(),
-    req.db.collection('deliveries').find({branch_id:branch.id,work_date:{$gte:`${month}-01`,$lte:`${month}-31`}},
-      {projection:{_id:1,work_date:1,fill_date:1,vehicle_id:1,plate_no:1,jobs:1,cargo_name:1,origin_place:1,destination_place:1,trip_fee_baht:1,allowance_baht:1,other_income_baht:1,...Object.fromEntries(DELIVERY_JOB_COSTS.map(key=>[key,1]))}}).toArray(),
+  const monthStart = `${month}-01`, monthEnd = `${month}-31`;
+  const [manualRows, deliveries, historicalTrips] = await Promise.all([
+    req.db.collection('transport_ledger').find({branch_id:branch.id,date:{$gte:monthStart,$lte:monthEnd}},{sort:{date:-1,created_at:-1}}).toArray(),
+    // Earlier records may have fill_date but no work_date; handle both without
+    // reading other branches or modifying the stored dates.
+    req.db.collection('deliveries').find({branch_id:branch.id,$or:[
+      {work_date:{$gte:monthStart,$lte:monthEnd}},
+      {$and:[{work_date:{$in:[null,'']}},{fill_date:{$gte:monthStart,$lte:monthEnd}}]},
+    ]},{projection:{_id:1,work_date:1,fill_date:1,vehicle_id:1,plate_no:1,jobs:1,cargo_name:1,origin_place:1,destination_place:1,trip_fee_baht:1,allowance_baht:1,other_income_baht:1,...Object.fromEntries(DELIVERY_JOB_COSTS.map(key=>[key,1]))}}).toArray(),
+    req.db.collection('trip_finance').find({branch_id:branch.id,date:{$gte:monthStart,$lte:monthEnd}},
+      {projection:{_id:1,date:1,vehicle_id:1,plate_no:1,material:1,quantity:1,reference:1,note:1,income_satang:1,expense_satang:1}}).toArray(),
   ]);
-  const autoRows = deliveryProfitLedgerRows(deliveries, vehicles);
+  const deliveryRows = deliveryProfitLedgerRows(deliveries, vehicles);
+  const oldTripReport = historicalTripProfitRows(historicalTrips, vehicles, deliveryRows);
+  const autoRows = [...deliveryRows, ...oldTripReport.rows];
   const possibleDuplicates = manualRows.map(m => {
     if (m.excluded_from_totals) return null;
     const sameBill = autoRows.filter(a => a.date===m.date && String(a.plate_no).trim()===String(m.plate_no).trim());
@@ -2579,7 +2627,7 @@ router.get('/transport-ledger', requireAuth, requireOwner, asyncHandler(async (r
   // Manual entries remain separate; only net trip profit is treated as auto income.
   const rows = [...manualRows.map(mongoToPlain),...autoRows].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const report = ledgerSummary(rows, vehicles);
-  jsonResponse(res,{success:true,month,branch,vehicles:vehicles.map(mongoToPlain),rows,...report,auto_trips:autoRows.length,possible_duplicates:possibleDuplicates});
+  jsonResponse(res,{success:true,month,branch,vehicles:vehicles.map(mongoToPlain),rows,...report,auto_trips:autoRows.length,auto_delivery_trips:deliveryRows.length,auto_historical_trips:oldTripReport.rows.length,matched_trip_records:oldTripReport.matched,possible_duplicates:possibleDuplicates});
 }));
 async function validateLedgerReconciliation(req, branch, entry) {
   if (!entry.excluded_from_totals) return;
