@@ -317,7 +317,7 @@ export async function createReceiptImageBlob(row = {}) {
   const rate = parseDecimal(row.expected_fuel_efficiency_km_per_liter || row.vehicle_fuel_efficiency_km_per_liter, 0);
   const canvas = document.createElement('canvas');
   canvas.width = 1080;
-  canvas.height = 1240 + jobs.length * 250;
+  canvas.height = 1340 + jobs.length * 272;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('อุปกรณ์ไม่รองรับการสร้างไฟล์รูปใบสรุปงาน');
   const ink = '#292329', red = '#b91c1c', muted = '#807377', border = '#f0dada';
@@ -347,8 +347,11 @@ export async function createReceiptImageBlob(row = {}) {
     drawText(ctx, `น้ำหนักขึ้น ${kgText(job.loading_weight_kg)}     น้ำหนักลง ${kgText(job.unloading_weight_kg)}`, 106, y + 145, 620, { size: 18, color: muted, maxLines: 1 });
     drawText(ctx, money(jobIncomeValue(job)), 973, y + 144, 230, { size: 21, weight: 950, color: red, align: 'right', maxLines: 1 });
     const expense = ['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((sum,key)=>sum+Math.max(0,parseDecimal(job[key],0)),0);
-    drawText(ctx, `ต้นทุน ${money(expense)}   ·   กำไร/ขาดทุน ${money(jobIncomeValue(job)-expense)}`, 106, y + 181, 840, { size: 20, weight: 900, color: red, maxLines: 1 });
-    y += 250;
+    const net = roundDecimal(jobIncomeValue(job) - expense, 2);
+    drawText(ctx, `ต้นทุนที่บันทึก ${money(expense)}`, 106, y + 178, 435, { size: 19, weight: 900, color: ink, maxLines: 1 });
+    drawText(ctx, `กำไร ${money(Math.max(net, 0))}`, 106, y + 205, 405, { size: 20, weight: 900, color: '#166534', maxLines: 1 });
+    drawText(ctx, `ขาดทุน ${money(Math.max(-net, 0))}`, 540, y + 205, 425, { size: 20, weight: 900, color: red, maxLines: 1 });
+    y += 272;
   });
   drawText(ctx, '02   น้ำมันและระยะทาง', 78, y + 8, 700, { size: 31, weight: 950, color: red });
   y += 68;
@@ -379,6 +382,12 @@ export async function createReceiptImageBlob(row = {}) {
   drawText(ctx, 'รวมรายได้งานขนส่ง', 98, y + 25, 400, { size: 23, weight: 900, color: '#fff', maxLines: 1 });
   drawText(ctx, money(income), 970, y + 21, 440, { size: 29, weight: 950, color: '#fff', align: 'right', maxLines: 1 });
   y += 96;
+  const totalRecordedCosts = roundDecimal(jobs.reduce((sum, job) => sum + ['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((cost,key)=>cost+Math.max(0,parseDecimal(job[key],0)),0),0),2);
+  const totalJobIncome = roundDecimal(jobs.reduce((sum, job) => sum + jobIncomeValue(job), 0),2);
+  const totalNet = roundDecimal(totalJobIncome - totalRecordedCosts,2);
+  drawText(ctx, `ต้นทุนที่บันทึกในงาน ${money(totalRecordedCosts)}`, 78, y, 880, { size: 19, weight: 900, color: ink, maxLines: 1 });
+  drawText(ctx, `กำไร ${money(Math.max(totalNet,0))}     ขาดทุน ${money(Math.max(-totalNet,0))}`, 78, y+29, 880, { size: 19, weight: 900, color: red, maxLines: 1 });
+  y += 60;
   drawText(ctx, 'หมายเหตุ: กำไรต่อเที่ยวรวมเฉพาะต้นทุนที่กรอกในแต่ละงานเท่านั้น', 78, y, 920, { size: 17, color: muted, maxLines: 1 });
   drawText(ctx, `ผู้บันทึก ${safeText(row.recorder_name || row.employee_name)}`, 78, y + 42, 920, { size: 17, color: muted, maxLines: 1 });
   return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('ไม่สามารถสร้างไฟล์ใบสรุปงานได้')), 'image/png'));

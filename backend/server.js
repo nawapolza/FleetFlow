@@ -2355,9 +2355,15 @@ router.delete('/users/:id', requireAuth, requireOwner, asyncHandler(async (req, 
   const oid = oidOrNull(req.params.id);
   if (!oid) return jsonResponse(res, { success: false, message: 'รหัสผู้ใช้ไม่ถูกต้อง' }, 400);
   if (String(req.user.id) === String(oid)) return jsonResponse(res, { success: false, message: 'ไม่สามารถปิดบัญชีที่กำลังใช้งานอยู่' }, 422);
+  const targetUser = await req.db.collection('users').findOne({ _id: oid, branch_id: branch.id });
+  if (!targetUser) return jsonResponse(res, { success: false, message: 'ไม่พบบัญชีในสาขาที่เลือก' }, 404);
+  if (targetUser.role === 'owner' && Number(targetUser.is_active ?? 1) !== 0) {
+    const activeOwners = await req.db.collection('users').countDocuments({ role: 'owner', is_active: { $ne: 0 } });
+    if (activeOwners <= 1) return jsonResponse(res, { success: false, message: 'ต้องเหลือผู้ดูแลระบบที่ใช้งานได้อย่างน้อย 1 บัญชี' }, 422);
+  }
   const result = await req.db.collection('users').updateOne(
     { _id: oid, branch_id: branch.id },
-    { $set: { is_active: 0, updated_at: nowIso() } },
+    { $set: { is_active: 0, updated_at: nowIso(), deactivated_at: nowIso() } },
   );
   if (!result.matchedCount) return jsonResponse(res, { success: false, message: 'ไม่พบบัญชีในสาขาที่เลือก' }, 404);
   emitDataChanged('users', 'delete', { id: String(oid), branch_id: branch.id });

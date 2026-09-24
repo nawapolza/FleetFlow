@@ -286,3 +286,18 @@ input[type=date],input[type=time],input[type=number] {min-width:0;max-width:100%
 input[type="date"],input[type="month"],input[type="time"]{min-height:46px!important;border:1px solid #ecc7cc!important;border-radius:12px!important;background:#fff!important;color:#292525!important;font-size:15px!important;padding:9px 12px!important;color-scheme:light}
 input[type="date"]::-webkit-calendar-picker-indicator,input[type="month"]::-webkit-calendar-picker-indicator{cursor:pointer;opacity:.85}
 @media(max-width:640px){.kd-home-hero{padding:18px 14px!important;min-height:0!important}.kd-home-logo-frame{width:130px!important;height:130px!important}.kd-home-hero h1{font-size:20px!important}.kd-home-action{min-height:70px!important;padding:10px!important}.kd-home-action-copy small{display:none!important}.ktf-hero{padding:16px!important}.ktf-hero img{width:64px!important;height:64px!important}.ktf-hero h1{font-size:22px!important}.ledger-hero{padding:16px!important}.ledger-hero p{display:none!important}}
+
+/* Separate operating profit/loss and readable employee management */
+.kw-finance-heading{margin:16px 0 8px;font-size:15px;font-weight:950;color:#7f1d1d}
+.kw-finance-breakdown{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:12px;background:#fff8f8;border:1px solid #f6d4d4;border-radius:14px;margin:9px 0 12px}
+.kw-finance-cell{display:grid;align-content:start;gap:5px;min-width:0;border:1px solid #f0dbdb;border-radius:11px;background:#fff;padding:10px}
+.kw-finance-cell span{color:#645b5b;font-size:11px;font-weight:800}
+.kw-finance-cell strong{color:#292524;font-size:clamp(12px,2vw,18px);font-weight:950;font-variant-numeric:tabular-nums;white-space:nowrap}
+.kw-finance-cell.is-profit{background:#f5fff8;border-color:#bee5c9}.kw-finance-cell.is-profit strong{color:#166534}
+.kw-finance-cell.is-loss{background:#fff3f3;border-color:#f8c4c4}.kw-finance-cell.is-loss strong{color:#991b1b}
+.kw-finance-net{grid-column:1/-1;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px;padding:11px;background:#991b1b;border-radius:10px;color:#fff}
+.kw-finance-net span{font-size:12px;font-weight:800}.kw-finance-net strong{font-size:clamp(13px,2.4vw,19px);white-space:nowrap;font-variant-numeric:tabular-nums}
+.kw-user-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.kw-user-tabs button{border:1px solid #f2bfc3;padding:10px 13px;border-radius:12px;background:#fff7f7;color:#991b1b;font-weight:900}.kw-user-tabs button.is-active{background:#b91c1c;color:white}
+.kw-list-actions .kw-user-remove{display:inline-flex;align-items:center;gap:5px;border:1px solid #fecaca;color:#991b1b;background:#fff1f2}
+@media(max-width:420px){.kw-finance-breakdown{gap:6px;padding:7px}.kw-finance-cell{padding:8px 7px}.kw-finance-cell strong{font-size:12px;letter-spacing:-.02em}.kw-finance-net{padding:9px 8px}}
+@media print{.kw-finance-cell,.kw-finance-net{-webkit-print-color-adjust:exact;print-color-adjust:exact}.kw-user-tabs{display:none}}

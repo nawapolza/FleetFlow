@@ -17,7 +17,8 @@ export default function UsersPage() {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
-  const pager = useCompactList(users, user => [user.name, user.username, user.phone, user.role]);
+  const [showInactive, setShowInactive] = useState(false);
+  const pager = useCompactList(users.filter(user => showInactive ? Number(user.is_active ?? 1) === 0 : Number(user.is_active ?? 1) !== 0), user => [user.name, user.username, user.phone, user.role]);
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -51,9 +52,9 @@ export default function UsersPage() {
   }
 
   async function remove(user) {
-    const ok = await confirmDanger(`ปิดใช้งาน ${user.name || user.username}?`, 'ผู้ใช้นี้จะเข้าสู่ระบบไม่ได้');
+    const ok = await confirmDanger(`ลบ ${user.name || user.username} ออกจากรายการใช้งาน?`, 'ระบบจะปิดสิทธิ์เข้าสู่ระบบ แต่เก็บประวัติการทำงานเดิมไว้ สามารถเปิดคืนในบัญชีที่ปิดแล้ว');
     if (!ok) return;
-    try { await api.deleteUser(user.id); toastSuccess('ปิดใช้งานผู้ใช้แล้ว'); load(true); } catch (err) { alertError(err, 'ลบผู้ใช้ไม่ได้'); }
+    try { await api.deleteUser(user.id); toastSuccess('ลบออกจากรายการใช้งานแล้ว (เก็บประวัติเดิม)'); load(true); } catch (err) { alertError(err, 'ลบผู้ใช้ไม่ได้'); }
   }
 
   async function restore(user) {
@@ -72,12 +73,13 @@ export default function UsersPage() {
         <span className="page-orbit-code">09 / USER ACCESS</span>
         <div>
           <h1 className="page-title">จัดการพนักงาน</h1>
-          <p className="page-subtitle">เพิ่ม แก้ไข ปิดใช้งานบัญชี และกำหนดสิทธิ์แอดมินหรือพนักงาน</p>
+          <p className="page-subtitle">เพิ่ม แก้ไข และลบออกจากรายการใช้งาน โดยเก็บประวัติงานและเปิดคืนบัญชีได้</p>
         </div>
         <span className="page-orbit-signal">2 ROLES</span>
       </div>
 
       <button type="button" className="btn-primary kw-add-btn" onClick={() => {setEditing(null);setForm(blankForm());setEditorOpen(v=>!v);}}>{editorOpen ? 'ปิดฟอร์ม' : '+ เพิ่มพนักงาน'}</button>
+      <div className="kw-user-tabs" role="group" aria-label="สถานะบัญชีพนักงาน"><button type="button" className={!showInactive ? 'is-active' : ''} onClick={() => setShowInactive(false)}>พนักงานที่ใช้งาน ({users.filter(user => Number(user.is_active ?? 1) !== 0).length})</button><button type="button" className={showInactive ? 'is-active' : ''} onClick={() => setShowInactive(true)}>บัญชีที่ลบจากรายการ ({users.filter(user => Number(user.is_active ?? 1) === 0).length})</button></div>
       <CompactPager state={pager} label="ค้นหาชื่อ ชื่อผู้ใช้ หรือเบอร์โทร"/>
       <form onSubmit={submit} className={`card p-4 md:p-5 ${editorOpen ? "" : "kw-editor-hidden"}`}>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-black"><UserPlus size={20} /> {editing ? 'แก้ไขผู้ใช้งาน' : 'เพิ่มผู้ใช้งาน'}</h2>
@@ -97,7 +99,7 @@ export default function UsersPage() {
       </form>
 
       <div className="kw-list-card"><div className="kw-list-scroll"><table className="kw-list-table"><thead><tr><th>ชื่อ / ชื่อผู้ใช้</th><th>เบอร์โทร</th><th>สิทธิ์ / สถานะ</th><th>จัดการ</th></tr></thead><tbody>
-        {pager.visible.map(user => <tr key={user.id}><td><strong>{user.name || user.username}</strong><small>@{user.username}</small></td><td>{user.phone || '-'}</td><td>{user.role === 'owner' ? 'แอดมิน' : 'พนักงาน'}<small>{String(user.is_active) === '0' ? 'ปิดใช้งาน' : 'ใช้งาน'}</small></td><td><div className="kw-list-actions"><button type="button" onClick={()=>startEdit(user)}>แก้ไข</button>{String(user.is_active) === '0' ? <button type="button" onClick={()=>restore(user)}>เปิดใช้งาน</button> : <button type="button" onClick={()=>remove(user)}>ปิดบัญชี</button>}</div></td></tr>)}
+        {pager.visible.map(user => <tr key={user.id}><td><strong>{user.name || user.username}</strong><small>@{user.username}</small></td><td>{user.phone || '-'}</td><td>{user.role === 'owner' ? 'แอดมิน' : 'พนักงาน'}<small>{String(user.is_active) === '0' ? 'ปิดใช้งาน' : 'ใช้งาน'}</small></td><td><div className="kw-list-actions"><button type="button" onClick={()=>startEdit(user)}>แก้ไข</button>{String(user.is_active) === '0' ? <button type="button" onClick={()=>restore(user)}>เปิดใช้งาน</button> : <button type="button" className="kw-user-remove" onClick={()=>remove(user)}><Trash2 size={14}/> ลบพนักงาน</button>}</div></td></tr>)}
         {!pager.filtered.length && <tr><td colSpan={4}>ไม่พบรายการ</td></tr>}
       </tbody></table></div></div>
     </div>

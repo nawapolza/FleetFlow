@@ -137,6 +137,24 @@ function jobIncomeValue(job = {}) {
   );
 }
 
+const JOB_COST_KEYS = ['sand_cost_baht', 'stone_cost_baht', 'fuel_cost_baht', 'tire_cost_baht', 'parts_cost_baht', 'mechanic_cost_baht', 'driver_cost_baht', 'other_cost_baht'];
+function jobCostValue(job = {}) {
+  return roundDecimal(JOB_COST_KEYS.reduce((sum, key) => sum + Math.max(0, parseDecimal(job[key], 0)), 0), 2);
+}
+function jobNetValue(job = {}) {
+  return roundDecimal(jobIncomeValue(job) - jobCostValue(job), 2);
+}
+function FinancialBreakdown({ income, cost, label }) {
+  const net = roundDecimal(income - cost, 2);
+  return <div className="kw-finance-breakdown" aria-label={label}>
+    <div className="kw-finance-cell"><span>รายได้</span><strong>{money(income)}</strong></div>
+    <div className="kw-finance-cell"><span>ต้นทุนที่บันทึกในงาน</span><strong>{money(cost)}</strong></div>
+    <div className="kw-finance-cell is-profit"><span>กำไร</span><strong>{money(Math.max(net, 0))}</strong></div>
+    <div className="kw-finance-cell is-loss"><span>ขาดทุน</span><strong>{money(Math.max(-net, 0))}</strong></div>
+    <div className="kw-finance-net"><span>ผลสุทธิ{label ? ` · ${label}` : ''}</span><strong>{net < 0 ? 'ขาดทุน' : 'กำไร'} {money(Math.abs(net))}</strong></div>
+  </div>;
+}
+
 function routeSummaryText(row) {
   const jobs = jobsFor(row);
   const first = jobs[0] || {};
@@ -180,6 +198,8 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
   const allowance = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'allowance_baht'), 0), 2) || incomeValue(row, 'allowance_baht');
   const otherIncome = roundDecimal(jobs.reduce((sum, job) => sum + incomeValue(job, 'other_income_baht'), 0), 2) || incomeValue(row, 'other_income_baht');
   const totalIncome = totalIncomeValue(row);
+  const jobsCost = roundDecimal(jobs.reduce((sum, job) => sum + jobCostValue(job), 0), 2);
+  const jobsIncome = roundDecimal(jobs.reduce((sum, job) => sum + jobIncomeValue(job), 0), 2);
   const groups = [
     { label: 'บิล', paths: photosFor(row, 'bill_photos', 'bill_photo', 'receipt_photo') },
     { label: 'เอกสาร', paths: photosFor(row, 'document_photos', 'document_photo') },
@@ -206,7 +226,7 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
             <div className="rf-invoice-job-top"><span>งาน {index + 1}</span><strong>{job.cargo_name || 'ไม่ระบุวัสดุ'}</strong><b>{number(job.distance_km, 2)} กม.</b></div>
             <div className="rf-invoice-route"><div><small>ต้นทาง</small><strong>{job.origin_place || '-'}</strong></div><div><small>ปลายทาง</small><strong>{job.destination_place || '-'}</strong></div></div>
             <div className="rf-invoice-job-bottom"><span>น้ำหนักขึ้น: {kgText(job.loading_weight_kg)}</span><span>น้ำหนักลง: {kgText(job.unloading_weight_kg)}</span><span>รายได้: {money(jobIncomeValue(job))}</span></div>
-            <div className="kw-invoice-job-finance"><span>ต้นทุน {money(['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((sum,key)=>sum+Number(job[key]||0),0))}</span><strong>กำไร/ขาดทุน {money(jobIncomeValue(job)-['sand_cost_baht','stone_cost_baht','fuel_cost_baht','tire_cost_baht','parts_cost_baht','mechanic_cost_baht','driver_cost_baht','other_cost_baht'].reduce((sum,key)=>sum+Number(job[key]||0),0))}</strong></div>
+            <FinancialBreakdown income={jobIncomeValue(job)} cost={jobCostValue(job)} label={`งาน ${index + 1}`} />
           </div>)}
         </div>
       </section>
@@ -218,7 +238,9 @@ export default function DeliveryReceiptCard({ row, onEdit, onDelete }) {
       <section className="rf-invoice-section rf-invoice-money"><div className="rf-invoice-section-head"><span>03</span><div><h3>สรุปรายได้งานขนส่ง</h3><p>รวมรายได้ของงานในรายการนี้</p></div></div>
         <div className="rf-invoice-footline"><span>ค่าบรรทุก</span><strong>{money(tripFee)}</strong></div><div className="rf-invoice-footline"><span>ค่าหิน</span><strong>{money(allowance)}</strong></div><div className="rf-invoice-footline"><span>ค่าทราย</span><strong>{money(otherIncome)}</strong></div>
         <div className="rf-invoice-grand"><span>รวมรายได้</span><strong>{money(totalIncome)}</strong></div>
-        <small className="rf-invoice-disclaimer">จำนวนเงินนี้เป็นรายได้งานขนส่ง ไม่ใช่กำไรสุทธิของรถ โปรดดูต้นทุนทั้งหมดในเมนูบัญชีขนส่ง</small>
+        <h4 className="kw-finance-heading">สรุปกำไร–ขาดทุนของใบงาน</h4>
+        <FinancialBreakdown income={jobsIncome} cost={jobsCost} label="รวมทุกงาน" />
+        <small className="rf-invoice-disclaimer">กำไร–ขาดทุนนี้คำนวณเฉพาะรายได้และต้นทุนที่กรอกไว้ในแต่ละงาน ไม่รวมหนี้หรือค่าใช้จ่ายที่บันทึกเพิ่มในบัญชีรับ–จ่าย</small>
       </section>
       <details className="rf-invoice-details"><summary>ข้อมูลเพิ่มเติม <ChevronDown size={18}/></summary><div className="rf-invoice-details-content">
         <div className="rf-invoice-extra"><Info label="ผู้บันทึก" value={row.recorder_name || row.employee_name || '-'} /><Info label="ผู้เติม" value={row.filler_name || '-'} /><Info label="หัวจ่ายก่อน" value={meterText(row.station_meter_before || row.odometer_before)} /><Info label="หัวจ่ายหลัง" value={meterText(row.station_meter_after || row.odometer_after)} /></div>
