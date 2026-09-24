@@ -2461,7 +2461,7 @@ router.delete('/vehicles/:id', requireAuth, requireOwner, asyncHandler(async (re
 
 // Independent transport ledger. Entries are manual: do not add deliveries or stock
 // into these totals automatically, preventing accidental double counting.
-const LEDGER_EXPENSES = ['น้ำมัน', 'อะไหล่', 'ค่าแรงช่างซ่อม', 'ค่ายาง', 'ค่าทางด่วน', 'ค่าแรงคนขับ', 'ค่าใช้จ่ายอื่น'];
+const LEDGER_EXPENSES = ['ค่าซ่อมรถ', 'น้ำมัน', 'อะไหล่', 'ค่าแรงช่างซ่อม', 'ค่ายาง', 'ค่าทางด่วน', 'ค่าแรงคนขับ', 'ค่าใช้จ่ายอื่น'];
 function ledgerPayload(body, vehicle, branch, user, previous = {}) {
   const date = String(body.date || '').trim();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(`${date}T00:00:00Z`)) || new Date(`${date}T00:00:00Z`).toISOString().slice(0,10) !== date) throw Object.assign(new Error('วันที่ไม่ถูกต้อง'), {status: 422});
@@ -2477,6 +2477,10 @@ function ledgerPayload(body, vehicle, branch, user, previous = {}) {
   if (type === 'income' && !material) throw Object.assign(new Error('ระบุวัสดุที่ขน'), {status: 422});
   const quantity = cleanString(body.quantity).slice(0,60);
   const note = cleanString(body.note).slice(0,500);
+  const matched_delivery_id = cleanString(body.matched_delivery_id).slice(0,100);
+  const matched_job_id = cleanString(body.matched_job_id).slice(0,100);
+  const excluded_from_totals = body.excluded_from_totals === true;
+  if (excluded_from_totals && (!matched_delivery_id || !matched_job_id)) throw Object.assign(new Error('กรุณาเลือกบิลงานขนส่งที่มีรายการนี้อยู่แล้ว'), {status:422});
   return {
     ...previous,
     ...branchFields(branch),
@@ -2484,6 +2488,9 @@ function ledgerPayload(body, vehicle, branch, user, previous = {}) {
     plate_no: vehicle.plate_no,
     date, type, category, amount_satang, material: type === 'income' ? material : '',
     quantity: type === 'income' ? quantity : '', note,
+    matched_delivery_id: excluded_from_totals ? matched_delivery_id : '',
+    matched_job_id: excluded_from_totals ? matched_job_id : '',
+    excluded_from_totals,
     updated_at: nowIso(), updated_by: String(user.id),
   };
 }
@@ -2498,6 +2505,7 @@ function ledgerSummary(rows, vehicles) {
     profit_satang: 0, by_category: {}, material_income: {}, entries: 0,
   }]));
   for (const r of rows) {
+    if (r.excluded_from_totals === true) continue;
     const key = String(r.vehicle_id);
     if (!totals.has(key)) totals.set(key, {vehicle_id:key, plate_no:r.plate_no || '-', income_satang:0,expense_satang:0,profit_satang:0,by_category:{},material_income:{},entries:0});
     const a = totals.get(key), val = Number(r.amount_satang || 0);
@@ -2515,20 +2523,94 @@ function ledgerSummary(rows, vehicles) {
   const total = by_vehicle.reduce((a,v)=>({income_satang:a.income_satang+v.income_satang,expense_satang:a.expense_satang+v.expense_satang,profit_satang:a.profit_satang+v.profit_satang}), {income_satang:0,expense_satang:0,profit_satang:0});
   return {total, by_vehicle};
 }
+// Virtual delivery-profit ledger rows: read directly from source deliveries so edits/deletes
+// are reflected immediately. Direct delivery costs have already been deducted from profit;
+// do not add them again to manually entered expenses.
+function deliveryProfitLedgerRows(deliveries, vehicles) {
+  const vehicleByPlate = new Map(vehicles.map(v => [String(v.plate_no || '').trim(), String(v._id)]));
+  const result = [];
+  for (const delivery of deliveries) {
+    const jobs = Array.isArray(delivery.jobs) && delivery.jobs.length ? delivery.jobs : [legacyDeliveryJob(delivery)];
+    jobs.forEach((job, index) => {
+      if (!deliveryJobHasContent(job)) return;
+      const income = Math.round((toNumber(job.trip_fee_baht,0) + toNumber(job.allowance_baht,0) + toNumber(job.other_income_baht,0))*100);
+      const expense = Math.round(DELIVERY_JOB_COSTS.reduce((n, key) => n + Math.max(0,toNumber(job[key],0)),0)*100);
+      const profit = income - expense;
+      // A trip without any recorded finance is not a financial transaction.
+      if (!income && !expense) return;
+      const date = String(delivery.work_date || delivery.fill_date || '').slice(0,10);
+      const plate = String(delivery.plate_no || '').trim();
+      result.push({
+        id: `delivery:${String(delivery._id)}:${String(job.id || job.job_id || index + 1)}`,
+        source_type: 'delivery_profit', source_delivery_id: String(delivery._id),
+        source_job_id: String(job.id || job.job_id || index + 1),
+        vehicle_id: vehicleByPlate.get(plate) || String(delivery.vehicle_id || ''), plate_no: plate || '-',
+        date, type: 'income', category: 'กำไรสุทธิจากเที่ยวงาน',
+        material: cleanString(job.cargo_name || delivery.cargo_name).slice(0,120),
+        bill_cost_items: Object.fromEntries(DELIVERY_JOB_COSTS.map(key => [key, Math.round(Math.max(0,toNumber(job[key],0))*100)])),
+        quantity: '', amount_satang: profit, trip_income_satang: income,
+        trip_cost_satang: expense, note: `งานที่ ${index+1} · ${cleanString(job.origin_place || delivery.origin_place)} → ${cleanString(job.destination_place || delivery.destination_place)}`.slice(0,500),
+        is_auto: true,
+      });
+    });
+  }
+  return result;
+}
 router.get('/transport-ledger', requireAuth, requireOwner, asyncHandler(async (req,res) => {
   const branch = await resolveBranchContext(req.db, req.user, req);
   const month = String(req.query.month || today().slice(0,7));
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return jsonResponse(res,{success:false,message:'รูปแบบเดือนต้องเป็น YYYY-MM'},422);
   const vehicles = await req.db.collection('vehicles').find({branch_id:branch.id,is_active:{$ne:0}},{sort:{plate_no:1}}).toArray();
-  const rows = await req.db.collection('transport_ledger').find({branch_id:branch.id,date:{$gte:`${month}-01`,$lte:`${month}-31`}},{sort:{date:-1,created_at:-1}}).toArray();
+  const [manualRows, deliveries] = await Promise.all([
+    req.db.collection('transport_ledger').find({branch_id:branch.id,date:{$gte:`${month}-01`,$lte:`${month}-31`}},{sort:{date:-1,created_at:-1}}).toArray(),
+    req.db.collection('deliveries').find({branch_id:branch.id,work_date:{$gte:`${month}-01`,$lte:`${month}-31`}},
+      {projection:{_id:1,work_date:1,fill_date:1,vehicle_id:1,plate_no:1,jobs:1,cargo_name:1,origin_place:1,destination_place:1,trip_fee_baht:1,allowance_baht:1,other_income_baht:1,...Object.fromEntries(DELIVERY_JOB_COSTS.map(key=>[key,1]))}}).toArray(),
+  ]);
+  const autoRows = deliveryProfitLedgerRows(deliveries, vehicles);
+  const possibleDuplicates = manualRows.map(m => {
+    if (m.excluded_from_totals) return null;
+    const sameBill = autoRows.filter(a => a.date===m.date && String(a.plate_no).trim()===String(m.plate_no).trim());
+    const value=Number(m.amount_satang || 0);
+    const matches=sameBill.filter(a => m.type==='income' ?
+      (value===a.trip_income_satang || value===a.amount_satang) :
+      (value===a.trip_cost_satang || Object.values(a.bill_cost_items || {}).includes(value)));
+    return matches.length ? {manual_id:String(m._id),candidate_bill_ids:matches.map(a=>a.id)} : null;
+  }).filter(Boolean);
+  // Manual entries remain separate; only net trip profit is treated as auto income.
+  const rows = [...manualRows.map(mongoToPlain),...autoRows].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
   const report = ledgerSummary(rows, vehicles);
-  jsonResponse(res,{success:true,month,branch,vehicles:vehicles.map(mongoToPlain),rows:rows.map(mongoToPlain),...report});
+  jsonResponse(res,{success:true,month,branch,vehicles:vehicles.map(mongoToPlain),rows,...report,auto_trips:autoRows.length,possible_duplicates:possibleDuplicates});
 }));
+async function validateLedgerReconciliation(req, branch, entry) {
+  if (!entry.excluded_from_totals) return;
+  const oid = oidOrNull(entry.matched_delivery_id);
+  if (!oid) throw Object.assign(new Error('บิลอ้างอิงไม่ถูกต้อง'), {status:422});
+  const delivery = await req.db.collection('deliveries').findOne({_id:oid,branch_id:branch.id});
+  if (!delivery) throw Object.assign(new Error('ไม่พบบิลอ้างอิงในสาขานี้'), {status:422});
+  if (String(delivery.plate_no || '').trim() !== String(entry.plate_no || '').trim())
+    throw Object.assign(new Error('ทะเบียนรถของรายการและบิลไม่ตรงกัน'), {status:422});
+  const workDate = String(delivery.work_date || delivery.fill_date || '').slice(0,10);
+  if (workDate !== entry.date) throw Object.assign(new Error('วันที่ของรายการและบิลไม่ตรงกัน กรุณาตรวจสอบบิลอ้างอิง'), {status:422});
+  const jobs = Array.isArray(delivery.jobs) && delivery.jobs.length ? delivery.jobs : [legacyDeliveryJob(delivery)];
+  if (!jobs.some((job, index) => String(job.id || job.job_id || index + 1) === entry.matched_job_id))
+    throw Object.assign(new Error('ไม่พบงานย่อยในบิลที่เลือก'), {status:422});
+}
+function ledgerReconciliationAudit(entry, old, user) {
+  const changed = Boolean(entry.excluded_from_totals) !== Boolean(old?.excluded_from_totals) ||
+    String(entry.matched_delivery_id || '') !== String(old?.matched_delivery_id || '') ||
+    String(entry.matched_job_id || '') !== String(old?.matched_job_id || '');
+  return changed ? [...(Array.isArray(old?.reconciliation_history) ? old.reconciliation_history : []), {
+    at:nowIso(), by:String(user.id), excluded_from_totals:entry.excluded_from_totals,
+    delivery_id:entry.matched_delivery_id, job_id:entry.matched_job_id,
+  }] : (Array.isArray(old?.reconciliation_history) ? old.reconciliation_history : []);
+}
 router.post('/transport-ledger', requireAuth, requireOwner, asyncHandler(async (req,res)=>{
   const branch=await resolveBranchContext(req.db,req.user,req);
   const vehicle=await ledgerVehicle(req,branch);
   if (!vehicle) return jsonResponse(res,{success:false,message:'ไม่พบรถในสาขาที่เลือก'},422);
   const entry=ledgerPayload(req.body,vehicle,branch,req.user);
+  await validateLedgerReconciliation(req,branch,entry);
+  entry.reconciliation_history=ledgerReconciliationAudit(entry,null,req.user);
   entry.created_at=nowIso();entry.created_by=String(req.user.id);
   const result=await req.db.collection('transport_ledger').insertOne(entry);
   emitDataChanged('transport-ledger','create',{id:String(result.insertedId),branch_id:branch.id});
@@ -2542,6 +2624,8 @@ router.put('/transport-ledger/:id', requireAuth, requireOwner, asyncHandler(asyn
   const vehicle=await ledgerVehicle(req,branch);
   if (!vehicle) return jsonResponse(res,{success:false,message:'ไม่พบรถในสาขาที่เลือก'},422);
   const next=ledgerPayload(req.body,vehicle,branch,req.user,existing);
+  await validateLedgerReconciliation(req,branch,next);
+  next.reconciliation_history=ledgerReconciliationAudit(next,existing,req.user);
   await req.db.collection('transport_ledger').replaceOne({_id:id,branch_id:branch.id},next);
   emitDataChanged('transport-ledger','update',{id:String(id),branch_id:branch.id});
   jsonResponse(res,{success:true,data:mongoToPlain(next)});
