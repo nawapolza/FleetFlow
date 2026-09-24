@@ -3,3 +3,25 @@
 @media(max-width:720px){.dw-flow{grid-template-columns:1fr}.dw-toolbar{grid-template-columns:1fr}.dw-mode-switch{width:100%}.dw-hero-badges{grid-template-columns:1fr}.dw-summary-grid{grid-template-columns:1fr 1fr}.dw-job-card,.dw-row{grid-template-columns:1fr}.dw-row-money{justify-items:start}.dw-form{grid-template-columns:1fr}.dw-advance-list>div{grid-template-columns:1fr auto auto auto}.dw-material-bar{display:grid;justify-content:stretch}.dw-material-form{grid-template-columns:1fr}.dw-floating-hint{justify-self:stretch;text-align:center}}
 @media(max-width:480px){.dw-page{gap:12px}.dw-panel{padding:14px;border-radius:18px}.dw-hero{padding:16px;border-radius:20px}.dw-hero h1{font-size:24px}.dw-summary-grid{grid-template-columns:1fr}.dw-flow button{padding:12px}.dw-toolbar-actions{flex-direction:column;align-items:stretch}.dw-outline-btn,.dw-print,.dw-primary,.dw-save{width:100%}.dw-panel header{flex-direction:column}.dw-material-trigger{padding:11px 12px;border-radius:14px}.dw-material-dropdown{left:-2px;right:-2px}}
 @media print{.rf-header,.rf-mobile-dock,.rf-page-marker,.dw-hero,.dw-flow,.dw-toolbar,.dw-material-bar,.dw-floating-hint,.dw-modal-bg,.dw-pager,.dw-view-toggle .is-active+button,.dw-view-toggle,.dw-outline-btn,.dw-row-money button,.dw-advance-list button,.dw-material-list button{display:none!important}.dw-page{padding:0}.dw-panel{box-shadow:none!important;border:0!important;padding:0!important}.dw-summary-grid{grid-template-columns:repeat(4,1fr)!important}.dw-summary-table{overflow:visible!important}.dw-cols-person,.dw-cols-vehicle,.dw-cols-pair{min-width:0!important}}
+/* Compact mobile summaries: one clear card per driver and vehicle, no horizontal table scrolling. */
+@media(max-width:720px){
+  .dw-summary-table{display:grid;gap:10px;border:0;overflow:visible;background:transparent}
+  .dw-summary-head{display:none}
+  .dw-summary-row.dw-cols-person,.dw-summary-row.dw-cols-vehicle,.dw-summary-row.dw-cols-pair{
+    min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+    padding:14px;border:1px solid #efdada;border-radius:16px;background:#fff;
+    box-shadow:0 6px 16px rgba(127,29,29,.04)
+  }
+  .dw-summary-row>span{min-width:0;overflow-wrap:anywhere}
+  .dw-summary-row>span:first-child{grid-column:1/-1;padding-bottom:9px;border-bottom:1px solid #f5e0e0;font-size:15px}
+  .dw-summary-row>span:nth-child(2){grid-column:1/-1;font-weight:750}
+  .dw-summary-row>span:nth-child(3)::before{content:'เที่ยว  ';display:block;color:#78716c;font-size:11px}
+  .dw-summary-row>span:nth-child(4)::before{content:'รายได้ (บาท)';display:block;color:#78716c;font-size:11px}
+  .dw-summary-row>span:nth-child(5)::before{content:'เบิกแล้ว (บาท)';display:block;color:#78716c;font-size:11px}
+  .dw-summary-row>span:nth-child(6)::before{content:'ยอดคงรับ (บาท)';display:block;color:#991b1b;font-size:11px}
+  .dw-summary-row>span:nth-child(7){grid-column:1/-1}
+  .dw-summary-row>span:nth-child(7)>button{width:100%}
+  .dw-view-toggle{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .dw-view-toggle button:last-child{grid-column:1/-1}
+  .dw-view-toggle button{padding:10px 8px;font-size:12px}
+}

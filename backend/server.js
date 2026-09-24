@@ -2723,6 +2723,9 @@ async function resolveDriverTripSource(req, branch, body = {}) {
   if (!job) throw Object.assign(new Error('ไม่พบงานย่อยที่เลือกในรายการขนส่ง'), { status: 404 });
   const realJobId = String(job.id || job.job_id || (jobs.length === 1 ? 'legacy' : 'job-1'));
   const vehicleId = String(delivery.vehicle_id || body.vehicle_id || '');
+  if (body.vehicle_id && delivery.vehicle_id && String(body.vehicle_id) !== String(delivery.vehicle_id)) {
+    throw Object.assign(new Error('ทะเบียนรถไม่ตรงกับบิลงานขนส่งต้นทาง กรุณาแก้ทะเบียนในบิลต้นทางก่อนบันทึกรายได้คนขับ'), { status: 422 });
+  }
   const loadingKg = Number(job.loading_weight_kg || 0);
   const unloadingKg = Number(job.unloading_weight_kg || 0);
   const weightKg = unloadingKg > 0 ? unloadingKg : loadingKg;
@@ -2757,7 +2760,7 @@ function driverTotals(trips, advances) {
   function ensurePair(row) {
     const vehicle_id = String(row.vehicle_id || '');
     const driver_name = row.driver_name || '-';
-    const key = `${vehicle_id} ${driver_name.trim().toLocaleLowerCase('th')}`;
+    const key = `${vehicle_id}\u0000${driver_name.trim().toLocaleLowerCase('th')}`;
     if (!byPair.has(key)) {
       byPair.set(key, { key, vehicle_id, plate_no: row.plate_no || '-', driver_name, trips: 0, income_satang: 0, advance_satang: 0, balance_satang: 0 });
     }
@@ -2807,7 +2810,7 @@ function driverTotals(trips, advances) {
   });
 
   const withBalance = (row) => ({ ...row, balance_satang: Number(row.income_satang || 0) - Number(row.advance_satang || 0) });
-  const by_driver = [...byPair.values()].map(withBalance).sort((a,b)=>a.plate_no.localeCompare(b.plate_no,'th')||a.driver_name.localeCompare(b.driver_name,'th'));
+  const by_driver = [...byPair.values()].map(withBalance).sort((a,b)=>a.driver_name.localeCompare(b.driver_name,'th')||a.plate_no.localeCompare(b.plate_no,'th'));
   const by_person = [...byPerson.values()].map(row => withBalance({
     ...row,
     plate_nos: [...row.plate_set].sort((a,b)=>a.localeCompare(b,'th')),
@@ -2861,7 +2864,11 @@ router.put('/driver-finance/trips/:id',requireAuth,requireOwner,asyncHandler(asy
   if(!id)return jsonResponse(res,{success:false,message:'รหัสเที่ยวไม่ถูกต้อง'},400);
   const old=await req.db.collection('driver_trips').findOne({_id:id,branch_id:branch.id});
   if(!old)return jsonResponse(res,{success:false,message:'ไม่พบเที่ยวนี้'},404);
-  const vehicle=await driverVehicle(req,branch),doc=driverRecord(req.body,vehicle,branch,req.user,old);
+  const vehicle=await driverVehicle(req,branch);
+  if (old.source_delivery_id && String(vehicle._id) !== String(old.vehicle_id)) {
+    return jsonResponse(res,{success:false,message:'รายการนี้ผูกกับบิลงานขนส่งเดิม ไม่สามารถเปลี่ยนทะเบียนในบัญชีคนขับได้ กรุณาแก้ทะเบียนในบิลต้นทางก่อน'},422);
+  }
+  const doc=driverRecord(req.body,vehicle,branch,req.user,old);
   await req.db.collection('driver_trips').replaceOne({_id:id,branch_id:branch.id},doc);
   jsonResponse(res,{success:true,data:mongoToPlain(doc)});
 }));

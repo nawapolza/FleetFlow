@@ -108,6 +108,20 @@ function aggregateByVehicle(trips = [], advances = []) {
   })).sort((a, b) => a.plate_no.localeCompare(b.plate_no, 'th'));
 }
 
+function aggregateByPair(trips = [], advances = []) {
+  const map = new Map();
+  const find = row => {
+    const plate = String(row.plate_no || '').trim().toLocaleUpperCase();
+    const driver = String(row.driver_name || '-').trim();
+    const key = `${String(row.vehicle_id || plate || '-')}:${driver.toLocaleLowerCase('th')}`;
+    if (!map.has(key)) map.set(key, { key, vehicle_id: row.vehicle_id || '', plate_no: plate || '-', driver_name: driver, trips: 0, income_satang: 0, advance_satang: 0 });
+    return map.get(key);
+  };
+  trips.forEach(row => { const target = find(row); target.trips += 1; target.income_satang += Number(row.income_satang || 0); });
+  advances.forEach(row => { const target = find(row); target.advance_satang += Number(row.amount_satang || 0); });
+  return [...map.values()].map(row => ({ ...row, balance_satang: row.income_satang - row.advance_satang })).sort((a, b) => a.driver_name.localeCompare(b.driver_name, 'th') || a.plate_no.localeCompare(b.plate_no, 'th'));
+}
+
 function monthLabel(period) {
   if (!period) return '-';
   if (/^\d{4}$/.test(period)) return `ปี ${period}`;
@@ -137,7 +151,7 @@ export default function TripFinancePage() {
   const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
   const [materialSearch, setMaterialSearch] = useState('');
   const [detail, setDetail] = useState(null);
-  const [summaryView, setSummaryView] = useState('person');
+  const [summaryView, setSummaryView] = useState('pair');
   const seq = useRef(0);
   const materialPickerRef = useRef(null);
 
@@ -203,7 +217,12 @@ export default function TripFinancePage() {
     return aggregateByVehicle(trips, advances);
   }, [data?.by_vehicle, trips, advances]);
 
-  const pairSummary = useMemo(() => data?.by_driver || [], [data?.by_driver]);
+  const pairSummary = useMemo(() => data?.by_driver?.length ? data.by_driver : aggregateByPair(trips, advances), [data?.by_driver, trips, advances]);
+  const knownDrivers = useMemo(() => [...new Set([
+    ...vehicles.map(v => v.driver_name), ...trips.map(v => v.driver_name), ...advances.map(v => v.driver_name),
+    ...pending.map(v => v.driver_name),
+  ].map(v => String(v || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'th')), [vehicles, trips, advances, pending]);
+  const plateFor = id => vehicles.find(v => v.id === id)?.plate_no || '-';
 
   const filteredSummary = useMemo(() => {
     const rows = summaryView === 'person' ? personSummary : summaryView === 'vehicle' ? vehicleSummary : pairSummary;
@@ -306,7 +325,7 @@ export default function TripFinancePage() {
 
   function vehicleChanged(id) {
     const vehicle = vehicles.find(v => v.id === id);
-    setAdvanceForm(old => ({ ...old, vehicle_id: id, driver_name: vehicle?.driver_name || old.driver_name || '' }));
+    setAdvanceForm(old => ({ ...old, vehicle_id: id, driver_name: old.driver_name || vehicle?.driver_name || '' }));
   }
 
   async function saveAdvance(event) {
@@ -376,7 +395,14 @@ export default function TripFinancePage() {
   }
 
   function openSummaryDetail(row) {
-    setDetail({ type: 'summary', summaryView, row });
+    const match = entry => summaryView === 'person'
+      ? String(entry.driver_name || '').trim().toLocaleLowerCase('th') === String(row.driver_name || '').trim().toLocaleLowerCase('th')
+      : summaryView === 'vehicle'
+        ? String(entry.vehicle_id || entry.plate_no || '') === String(row.vehicle_id || row.plate_no || '')
+        : String(entry.vehicle_id || entry.plate_no || '') === String(row.vehicle_id || row.plate_no || '')
+          && String(entry.driver_name || '').trim().toLocaleLowerCase('th') === String(row.driver_name || '').trim().toLocaleLowerCase('th');
+    setDetail({ type: 'summary', summaryView, row,
+      matchingTrips: trips.filter(match), matchingAdvances: advances.filter(match) });
   }
 
   function renderSummaryTable() {
@@ -433,6 +459,7 @@ export default function TripFinancePage() {
   }
 
   return <div className="dw-page">
+    <datalist id="driver-names">{knownDrivers.map(name => <option key={name} value={name} />)}</datalist>
     <section className="dw-hero">
       <div className="dw-hero-copy">
         <span className="dw-kicker">DRIVER FINANCE</span>
@@ -514,7 +541,7 @@ export default function TripFinancePage() {
             <div>
               <span className="dw-step-tag">ขั้นตอน 2A</span>
               <h2>{editingTripId ? 'แก้ไขรายได้คนขับ' : 'บันทึกรายได้คนขับต่อเที่ยว'}</h2>
-              <p>ข้อมูลสำคัญอยู่ด้านบน เรียงลำดับให้อ่านง่ายและกรอกสะดวกบนมือถือ</p>
+              <p>ทะเบียนรถระบุคันที่วิ่ง ส่วนชื่อคนขับระบุผู้รับรายได้จริง ตรวจสอบทั้งสองช่องก่อนบันทึก</p>
             </div>
           </header>
           {!tripForm ? <Empty>เลือกงานจากขั้นตอน 1 หรือกดแก้ไขจากรายการด้านล่างเพื่อเริ่มบันทึกรายได้</Empty> : <>
@@ -527,11 +554,11 @@ export default function TripFinancePage() {
             </div>}
             <form className="dw-form" onSubmit={saveTrip}>
               <label><span>วันที่ *</span><input type="date" required value={tripForm.date} onChange={e => setTripForm(v => ({ ...v, date: e.target.value }))} /></label>
-              <label><span>ทะเบียนรถ *</span><select required value={tripForm.vehicle_id} onChange={e => {
+              <label><span>ทะเบียนรถ * (รถที่วิ่งจริง)</span><select required disabled={Boolean(tripForm.source_delivery_id)} value={tripForm.vehicle_id} onChange={e => {
                 const vehicle = vehicles.find(v => v.id === e.target.value);
-                setTripForm(v => ({ ...v, vehicle_id: e.target.value, driver_name: vehicle?.driver_name || v.driver_name || '' }));
+                setTripForm(v => ({ ...v, vehicle_id: e.target.value, driver_name: v.driver_name || vehicle?.driver_name || '' }));
               }}><option value="">เลือกทะเบียนรถ</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></label>
-              <label><span>ชื่อคนขับ *</span><input required value={tripForm.driver_name} onChange={e => setTripForm(v => ({ ...v, driver_name: e.target.value }))} placeholder="กรอกชื่อคนขับ" /></label>
+              <label><span>ชื่อคนขับ *</span><input required list="driver-names" value={tripForm.driver_name} onChange={e => setTripForm(v => ({ ...v, driver_name: e.target.value }))} placeholder="เลือกหรือกรอกชื่อคนขับ" /></label>
               <label><span>รายได้คนขับเที่ยวนี้ *</span><div className="dw-money"><input type="number" inputMode="decimal" min="0" step="0.01" required value={tripForm.income_baht} onChange={e => setTripForm(v => ({ ...v, income_baht: e.target.value }))} placeholder="0.00" /><b>บาท</b></div></label>
               <label className="dw-wide"><span>วัสดุที่ขน *</span>
                 <div className={`dw-material-select ${materialPickerOpen ? 'is-open' : ''}`} ref={materialPickerRef}>
@@ -578,8 +605,8 @@ export default function TripFinancePage() {
           </header>
           <form className="dw-form" onSubmit={saveAdvance}>
             <label><span>วันที่ *</span><input type="date" required value={advanceForm.date} onChange={e => setAdvanceForm(v => ({ ...v, date: e.target.value }))} /></label>
-            <label><span>ทะเบียนรถ *</span><select required value={advanceForm.vehicle_id} onChange={e => vehicleChanged(e.target.value)}><option value="">เลือกทะเบียน</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></label>
-            <label><span>ชื่อคนขับ *</span><input required value={advanceForm.driver_name} onChange={e => setAdvanceForm(v => ({ ...v, driver_name: e.target.value }))} /></label>
+            <label><span>ทะเบียนรถ * (รถที่เบิก)</span><select required value={advanceForm.vehicle_id} onChange={e => vehicleChanged(e.target.value)}><option value="">เลือกทะเบียน</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.plate_no}</option>)}</select></label>
+            <label><span>ชื่อคนขับ * (ผู้รับเงิน)</span><input required list="driver-names" value={advanceForm.driver_name} onChange={e => setAdvanceForm(v => ({ ...v, driver_name: e.target.value }))} placeholder="เลือกหรือกรอกชื่อคนขับ" /></label>
             <label><span>ยอดเบิก *</span><div className="dw-money"><input type="number" min="0" step="0.01" required value={advanceForm.amount_baht} onChange={e => setAdvanceForm(v => ({ ...v, amount_baht: e.target.value }))} placeholder="0.00" /><b>บาท</b></div></label>
             <label className="dw-wide"><span>หมายเหตุ</span><input value={advanceForm.note} onChange={e => setAdvanceForm(v => ({ ...v, note: e.target.value }))} placeholder="เช่น เบิกค่าน้ำมัน / ค่าใช้จ่ายส่วนตัว" /></label>
             <div className="dw-form-actions dw-wide">
@@ -632,19 +659,19 @@ export default function TripFinancePage() {
         <div>
           <span className="dw-step-tag">ขั้นตอน 3</span>
           <h2>สรุปยอดบัญชีคนขับ</h2>
-          <p>ดูได้ทั้งแบบรายบุคคล, รายทะเบียน, และแบบจับคู่คนขับกับทะเบียน เพื่อเช็กข้อมูลได้ละเอียดขึ้น</p>
+          <p>แสดงยอดแยกตามคนขับแต่ละทะเบียนเป็นค่าเริ่มต้น เปลี่ยนมุมมองได้โดยไม่แก้ไขข้อมูลจริง</p>
         </div>
       </header>
 
       <div className="dw-view-toggle">
         <button type="button" className={summaryView === 'person' ? 'is-active' : ''} onClick={() => setSummaryView('person')}>แยกเป็นบุคคล</button>
         <button type="button" className={summaryView === 'vehicle' ? 'is-active' : ''} onClick={() => setSummaryView('vehicle')}>แยกตามทะเบียน</button>
-        <button type="button" className={summaryView === 'pair' ? 'is-active' : ''} onClick={() => setSummaryView('pair')}>คนขับ + ทะเบียน</button>
+        <button type="button" className={summaryView === 'pair' ? 'is-active' : ''} onClick={() => setSummaryView('pair')}>แยกคนขับแต่ละทะเบียน</button>
       </div>
 
       <div className="dw-callout">
         <b>มุมมองปัจจุบัน:</b>
-        <span>{summaryView === 'person' ? 'รวมตามชื่อคนขับ พร้อมแสดงทะเบียนที่ดูแล' : summaryView === 'vehicle' ? 'รวมตามทะเบียนรถ พร้อมแสดงรายชื่อคนขับที่เกี่ยวข้อง' : 'แยกละเอียดตามคู่คนขับและทะเบียน'}</span>
+        <span>{summaryView === 'person' ? 'รวมตามชื่อคนขับ พร้อมแสดงทะเบียนที่ดูแล' : summaryView === 'vehicle' ? 'รวมตามทะเบียนรถ พร้อมแสดงรายชื่อคนขับที่เกี่ยวข้อง' : 'คนเดียวกันต่างทะเบียนจะแสดงคนละแถว ไม่สลับยอดระหว่างทะเบียน'}</span>
       </div>
 
       {renderSummaryTable()}
@@ -688,6 +715,10 @@ export default function TripFinancePage() {
           <p><span>รายได้รวม</span><b>{cash(detail.row.income_satang)} บาท</b></p>
           <p><span>เบิกแล้ว</span><b>{cash(detail.row.advance_satang)} บาท</b></p>
           <p className="is-total"><span>ยอดคงรับ</span><b>{cash(detail.row.balance_satang)} บาท</b></p>
+          <h3>เที่ยวงาน ({detail.matchingTrips.length})</h3>
+          {detail.matchingTrips.map(item => <p key={item.id}><span>{item.date} · {item.plate_no} · {item.material || 'เที่ยวงาน'}</span><b>+{cash(item.income_satang)} บาท</b></p>)}
+          <h3>เบิกล่วงหน้า ({detail.matchingAdvances.length})</h3>
+          {detail.matchingAdvances.map(item => <p key={item.id}><span>{item.date} · {item.plate_no} · {item.note || 'เบิกเงิน'}</span><b>-{cash(item.amount_satang)} บาท</b></p>)}
         </div> : <div className="dw-detail">
           <p><span>วันที่</span><b>{detail.row.date}</b></p>
           <p><span>ทะเบียน</span><b>{detail.row.plate_no}</b></p>
