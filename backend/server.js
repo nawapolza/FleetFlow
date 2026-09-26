@@ -104,6 +104,8 @@ const DEFAULT_BRANCH = {
 let mongoClient = null;
 let mongoDb = null;
 let mongoDbPromise = null;
+let mongoMaintenancePromise = null;
+let mongoMaintenanceReady = false;
 
 function nowIso() {
   return new Date().toISOString();
@@ -460,6 +462,7 @@ async function ensureIndexes(db) {
     createCompatibleIndex(db.collection('deliveries'), { item_type: 1, fill_date: -1 }, 'deliveries'),
     createCompatibleIndex(db.collection('deliveries'), { 'jobs.origin_place': 1 }, 'deliveries'),
     createCompatibleIndex(db.collection('deliveries'), { 'jobs.destination_place': 1 }, 'deliveries'),
+    createCompatibleIndex(db.collection('deliveries'), { branch_id: 1, work_date: -1, 'jobs.wage_payer': 1 }, 'deliveries'),
     createCompatibleIndex(db.collection('vehicles'), { branch_id: 1, plate_no: 1 }, 'vehicles'),
     createCompatibleIndex(db.collection('transport_ledger'), { branch_id: 1, date: -1, vehicle_id: 1 }, 'transport_ledger'),
     createCompatibleIndex(db.collection('trip_finance'), { branch_id: 1, date: -1, vehicle_id: 1 }, 'trip_finance'),
@@ -561,19 +564,40 @@ async function ensureIndexes(db) {
   }
 }
 
+function startDatabaseMaintenance(db) {
+  if (mongoMaintenanceReady || mongoMaintenancePromise) return mongoMaintenancePromise;
+  mongoMaintenancePromise = ensureIndexes(db)
+    .then(() => {
+      mongoMaintenanceReady = true;
+      console.log('[database] Background maintenance/index check completed');
+    })
+    .catch((error) => {
+      console.error('[database] Background maintenance failed:', error.code || error.name, error.message);
+      // Do not block login or read-only API access. A later process restart can retry.
+    })
+    .finally(() => { mongoMaintenancePromise = null; });
+  return mongoMaintenancePromise;
+}
+
 async function getDb() {
   if (mongoDb) return mongoDb;
   if (mongoDbPromise) return mongoDbPromise;
   if (!config.mongodb.uri) throw new Error('MONGODB_URI is not set');
-  // The first simultaneous API calls share the same initialization/migration.
+  // Connect first and return the database immediately. Expensive legacy migrations/index
+  // reconciliation now run in the background so the first login does not wait for them.
   mongoDbPromise = (async () => {
-    const client = new MongoClient(config.mongodb.uri, { serverSelectionTimeoutMS: 10000 });
+    const client = new MongoClient(config.mongodb.uri, {
+      serverSelectionTimeoutMS: 8000,
+      maxPoolSize: 20,
+      minPoolSize: 1,
+      maxIdleTimeMS: 60000,
+    });
     try {
       await client.connect();
       const db = client.db(config.mongodb.db);
-      await ensureIndexes(db);
       mongoClient = client;
       mongoDb = db;
+      startDatabaseMaintenance(db);
       return db;
     } catch (error) {
       await client.close().catch(() => {});
@@ -1706,7 +1730,14 @@ router.post('/auth/login', loginRateLimit, asyncHandler(async (req, res) => {
   if (!ok) return jsonResponse(res, { success: false, message: 'รหัสผ่านผิดพลาด' }, 401);
   const publicData = publicUser(user);
   const token = signUserToken(publicData);
-  jsonResponse(res, { success: true, token, user: publicData });
+  // Return branch choices with login to save one extra round trip before the first screen.
+  const branchFilter = publicData.role === 'owner'
+    ? { is_active: { $ne: 0 } }
+    : { _id: oidOrNull(publicData.branch_id), is_active: { $ne: 0 } };
+  const loginBranches = branchFilter._id === null
+    ? []
+    : await req.db.collection('branches').find(branchFilter, { sort: { is_default: -1, name: 1 } }).toArray();
+  jsonResponse(res, { success: true, token, user: publicData, branches: loginBranches.map(mongoToPlain) });
 }));
 
 
@@ -2143,6 +2174,104 @@ router.get('/maps/route', requireAuth, asyncHandler(async (req, res) => {
       : [],
     route_quality: 'เส้นทางรถยนต์ตามเครือข่ายถนน OSRM', calculated_at: nowIso(), provider: 'OpenStreetMap / OSRM',
   } });
+}));
+
+router.get('/billing/summary', requireAuth, requireOwner, asyncHandler(async (req, res) => {
+  const branch = await resolveBranchContext(req.db, req.user, req);
+  const from = parseDateOrNull(req.query.from) || today();
+  const to = parseDateOrNull(req.query.to) || from;
+  if (from > to) return jsonResponse(res, { success: false, message: 'ช่วงวันที่ไม่ถูกต้อง' }, 422);
+  const payerQuery = cleanString(req.query.payer).toLocaleLowerCase('th');
+
+  const rows = await req.db.collection('deliveries').find({
+    branch_id: branch.id,
+    $or: [
+      { work_date: { $gte: from, $lte: to } },
+      { fill_date: { $gte: from, $lte: to } },
+    ],
+  }, {
+    sort: { work_date: 1, created_at: 1 },
+    projection: {
+      work_date: 1, fill_date: 1, plate_no: 1, vehicle_no: 1, driver_name: 1,
+      cargo_name: 1, origin_place: 1, destination_place: 1, loading_weight_kg: 1,
+      trip_fee_baht: 1, allowance_baht: 1, other_income_baht: 1, total_income_baht: 1,
+      wage_payer: 1, payment_status: 1, jobs: 1, reference: 1, created_at: 1,
+    },
+  }).toArray();
+
+  const groups = new Map();
+  const items = [];
+  const addItem = (delivery, job, index) => {
+    const payer = cleanString(job?.wage_payer || delivery.wage_payer) || 'ไม่ระบุผู้จ่ายค่าแรง';
+    if (payerQuery && !payer.toLocaleLowerCase('th').includes(payerQuery)) return;
+    const tripFee = toNumber(job?.trip_fee_baht ?? delivery.trip_fee_baht, 0);
+    const allowance = toNumber(job?.allowance_baht ?? delivery.allowance_baht, 0);
+    const otherIncome = toNumber(job?.other_income_baht ?? delivery.other_income_baht, 0);
+    const calculated = tripFee + allowance + otherIncome;
+    const fallbackTotal = toNumber(job?.total_income_baht ?? delivery.total_income_baht, 0);
+    const amount = round2(calculated > 0 ? calculated : fallbackTotal);
+    const date = parseDateOrNull(delivery.work_date || delivery.fill_date) || from;
+    const status = cleanString(job?.payment_status || delivery.payment_status) || 'pending';
+    const item = {
+      id: `${String(delivery._id)}:${String(job?.id || job?.job_id || index + 1)}`,
+      delivery_id: String(delivery._id),
+      job_no: index + 1,
+      date,
+      payer,
+      plate_no: cleanString(delivery.plate_no || delivery.vehicle_no) || '-',
+      driver_name: cleanString(job?.driver_name || delivery.driver_name) || '-',
+      cargo_name: cleanString(job?.cargo_name || delivery.cargo_name) || '-',
+      origin_place: cleanString(job?.origin_place || delivery.origin_place) || '-',
+      destination_place: cleanString(job?.destination_place || delivery.destination_place) || '-',
+      quantity: cleanString(job?.quantity || job?.weight_tons || '') || '',
+      loading_weight_kg: toNumber(job?.loading_weight_kg ?? delivery.loading_weight_kg, 0),
+      trip_fee_baht: round2(tripFee), allowance_baht: round2(allowance), other_income_baht: round2(otherIncome),
+      amount_baht: amount,
+      payment_status: status,
+      reference: cleanString(job?.reference || delivery.reference) || '',
+    };
+    items.push(item);
+    const key = payer.toLocaleLowerCase('th');
+    if (!groups.has(key)) groups.set(key, {
+      payer, trips: 0, amount_baht: 0, paid_amount_baht: 0, pending_amount_baht: 0,
+      paid_trips: 0, pending_trips: 0, plates: new Set(), drivers: new Set(),
+    });
+    const g = groups.get(key);
+    g.trips += 1;
+    g.amount_baht += amount;
+    if (status === 'paid') { g.paid_trips += 1; g.paid_amount_baht += amount; }
+    else { g.pending_trips += 1; g.pending_amount_baht += amount; }
+    if (item.plate_no !== '-') g.plates.add(item.plate_no);
+    if (item.driver_name !== '-') g.drivers.add(item.driver_name);
+  };
+
+  for (const delivery of rows) {
+    const jobs = Array.isArray(delivery.jobs) && delivery.jobs.length ? delivery.jobs : [delivery];
+    jobs.forEach((job, index) => addItem(delivery, job, index));
+  }
+
+  const payers = [...groups.values()].map((g) => ({
+    payer: g.payer,
+    trips: g.trips,
+    amount_baht: round2(g.amount_baht),
+    paid_amount_baht: round2(g.paid_amount_baht),
+    pending_amount_baht: round2(g.pending_amount_baht),
+    paid_trips: g.paid_trips,
+    pending_trips: g.pending_trips,
+    plate_nos: [...g.plates].sort((a,b)=>a.localeCompare(b,'th')),
+    driver_names: [...g.drivers].sort((a,b)=>a.localeCompare(b,'th')),
+  })).sort((a,b)=>b.amount_baht-a.amount_baht || a.payer.localeCompare(b.payer,'th'));
+
+  const total = payers.reduce((acc, row) => {
+    acc.payers += 1; acc.trips += row.trips; acc.amount_baht += row.amount_baht;
+    acc.paid_amount_baht += row.paid_amount_baht; acc.pending_amount_baht += row.pending_amount_baht;
+    return acc;
+  }, { payers: 0, trips: 0, amount_baht: 0, paid_amount_baht: 0, pending_amount_baht: 0 });
+  total.amount_baht = round2(total.amount_baht);
+  total.paid_amount_baht = round2(total.paid_amount_baht);
+  total.pending_amount_baht = round2(total.pending_amount_baht);
+
+  jsonResponse(res, { success: true, data: { branch, from, to, generated_at: nowIso(), total, payers, items } });
 }));
 
 router.get('/meta/fields', requireAuth, (_req, res) => jsonResponse(res, {
@@ -3579,4 +3708,6 @@ app.use((err, _req, res, _next) => {
 
 httpServer.listen(config.port, () => {
   console.log(`Heng Charoen Phuetphon Fuel Management API v78-google-route-endpoints running on port ${config.port}`);
+  // Warm the MongoDB pool before the first user opens the login page.
+  getDb().then((db) => db.command({ ping: 1 })).then(() => console.log('[database] warm connection ready')).catch((error) => console.warn('[database] warm-up failed:', error.message));
 });

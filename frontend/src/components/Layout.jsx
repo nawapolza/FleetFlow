@@ -1,6 +1,6 @@
 import {
   Activity, BarChart3, Bell, Building2, Calculator, ChevronDown, ClipboardList,
-  FileSpreadsheet, History, KeyRound, LogOut, Menu, ReceiptText, Package, ShieldCheck,
+  FileSpreadsheet, FileText, History, KeyRound, LogOut, Menu, ReceiptText, Package, ShieldCheck,
   Truck, Users, WalletCards, X,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -14,6 +14,7 @@ const navigation = [
   { key: 'deliveries', label: 'รายการย้อนหลัง', icon: History },
   { key: 'calculator', label: 'คำนวณระยะทาง', icon: Calculator },
   { key: 'trips', label: 'บัญชีคนขับ', icon: ReceiptText, ownerOnly: true },
+  { key: 'billing', label: 'ใบวางบิล', icon: FileText, ownerOnly: true },
   { key: 'ledger', label: 'บัญชีขนส่งเดิม', icon: WalletCards, ownerOnly: true },
   { key: 'reports', label: 'รายงานรายเดือน', icon: FileSpreadsheet, ownerOnly: true },
   { key: 'materials', label: 'จัดการวัสดุ', icon: Package, ownerOnly: true },
@@ -31,7 +32,7 @@ export default function Layout({ page, setPage, children }) {
   const items = navigation.filter(item => !item.ownerOnly || isOwner);
   const current = items.find(item => item.key === page) || items[0];
   const CurrentIcon = current.icon;
-  const quickItems = isOwner ? ['dashboard', 'quick', 'trips', 'reports'] : ['quick', 'deliveries', 'calculator', 'account'];
+  const quickItems = isOwner ? ['dashboard', 'quick', 'billing', 'trips'] : ['quick', 'deliveries', 'calculator', 'account'];
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? 'hidden' : '';

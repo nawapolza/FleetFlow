@@ -1,11 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { api, clearSession, getStoredUser, getToken, setSession } from '../api.js';
+import { api, clearSession, getStoredUser, getToken, setSession, setStoredBranches } from '../api.js';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => getStoredUser());
-  const [loading, setLoading] = useState(Boolean(getToken()));
+  // A cached user can render the shell immediately while /auth/me verifies the token in background.
+  // API authorization remains server-side, so this improves perceived startup without weakening backend security.
+  const [loading, setLoading] = useState(() => Boolean(getToken()) && !getStoredUser());
 
   const refreshMe = useCallback(async () => {
     if (!getToken()) {
@@ -24,8 +26,9 @@ export function AuthProvider({ children }) {
         clearSession();
         setUser(null);
       } else {
-        setUser(null); // Do not display authenticated content until the session is verified.
-        console.warn('[auth] Could not refresh session; keeping token for retry:', err.code || err.status);
+        // Keep the cached shell visible during a temporary Render/Mongo cold start.
+        // Every protected API request is still authorized by the backend token.
+        console.warn('[auth] Could not refresh session; keeping cached session for retry:', err.code || err.status);
       }
       return null;
     } finally {
@@ -38,6 +41,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (username, password) => {
     const res = await api.login(username, password);
     setSession(res.token, res.user);
+    if (Array.isArray(res.branches) && res.branches.length) setStoredBranches(res.branches);
     setUser(res.user);
     return res.user;
   }, []);

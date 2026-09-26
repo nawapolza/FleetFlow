@@ -1,6 +1,7 @@
 const TOKEN_KEY = 'oilops_token';
 const USER_KEY = 'oilops_user';
 const BRANCH_KEY = 'oilops_active_branch_v62';
+const BRANCHES_CACHE_KEY = 'oilops_branches_cache_v1';
 
 function normalizeBaseUrl(url) {
   const raw = String(url || import.meta.env.VITE_API_URL || '/api').trim();
@@ -37,6 +38,17 @@ export function setActiveBranchId(branchId) {
   else localStorage.removeItem(BRANCH_KEY);
 }
 
+export function getStoredBranches() {
+  try {
+    const rows = JSON.parse(localStorage.getItem(BRANCHES_CACHE_KEY) || '[]');
+    return Array.isArray(rows) ? rows : [];
+  } catch (_) { return []; }
+}
+
+export function setStoredBranches(rows) {
+  try { localStorage.setItem(BRANCHES_CACHE_KEY, JSON.stringify(Array.isArray(rows) ? rows : [])); } catch (_) {}
+}
+
 export function setSession(token, user) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
@@ -46,6 +58,7 @@ export function clearSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
   localStorage.removeItem(BRANCH_KEY);
+  localStorage.removeItem(BRANCHES_CACHE_KEY);
 }
 
 export function getStoredUser() {
@@ -151,6 +164,7 @@ export const api = {
   deliveries: (params = {}) => apiRequest(`/deliveries${query(params)}`),
   deliveryJobFinance: (period) => apiRequest(`/delivery-job-finance?period=${encodeURIComponent(period)}`),
   driverFinance: (period) => apiRequest(`/driver-finance${query({period})}`),
+  billingSummary: (params = {}) => apiRequest(`/billing/summary${query(params)}`),
   createDriverTrip: (body) => apiRequest('/driver-finance/trips',{method:'POST',body}),
   updateDriverTrip: (id,body) => apiRequest(`/driver-finance/trips/${id}`,{method:'PUT',body}),
   deleteDriverTrip: (id) => apiRequest(`/driver-finance/trips/${id}`,{method:'DELETE'}),
